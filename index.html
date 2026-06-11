@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Belmont Reliability Leaderboard</title>
+<style>
+  :root{
+    --teal:#1F4E5F; --mid:#2E7D8F; --gold:#C8923D; --sand:#F2EAD9; --slate:#3A4A52;
+    --green:#4A8C5E; --amber:#D9A441; --paper:#FBF8F2; --line:#D8D2C4; --lteal:#5B9AA8;
+    --goldlt:#F5ECDC; --hdrfill:#EAF1F3; --red:#B5503C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--slate);padding:24px 30px 50px;}
+  .head{text-align:center;border-bottom:4px solid var(--gold);padding-bottom:15px;margin-bottom:14px;}
+  .head h1{color:var(--teal);font-size:36px;letter-spacing:.5px;}
+  .head .sub{color:var(--gold);font-size:21px;font-weight:bold;margin-top:4px;}
+  .head .period{color:var(--slate);font-size:17px;margin-top:7px;}
+  .wkwrap{max-width:520px;margin:12px auto 0;}
+  .wklabel{font-size:13px;color:var(--mid);margin-bottom:5px;text-align:center;}
+  .wkbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .wkfill{height:100%;background:linear-gradient(90deg,var(--lteal),var(--mid));border-radius:6px;}
+  .toolbar{max-width:1540px;margin:16px auto 22px;display:flex;justify-content:flex-end;align-items:center;gap:12px;}
+  .authbar{display:flex;align-items:center;gap:10px;margin-right:auto;font-size:13px;}
+  .authbar .scope{font-weight:bold;padding:5px 12px;border-radius:20px;}
+  .authbar .scope.view{background:var(--hdrfill);color:var(--mid);}
+  .authbar .scope.edit{background:#e7f1ea;color:var(--green);}
+  .btn-mini{background:var(--teal);color:#fff;font-size:12.5px;padding:6px 12px;border-radius:7px;}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-weight:bold;font-size:15px;padding:10px 18px;}
+  .btn-edit{background:var(--teal);color:#fff;} .btn-save{background:var(--green);color:#fff;}
+  .btn-layout{background:#fff;color:var(--teal);border:1.5px solid var(--teal);}
+  .layoutbar{display:flex;align-items:stretch;height:44px;margin-bottom:10px;border:1px solid var(--mid);border-radius:8px;overflow:hidden;background:var(--hdrfill);user-select:none;}
+  .layoutbar .seg{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--teal);font-weight:bold;overflow:hidden;white-space:nowrap;min-width:0;}
+  .layoutbar .handle{flex:0 0 12px;cursor:col-resize;background:var(--mid);display:flex;align-items:center;justify-content:center;touch-action:none;}
+  .layoutbar .handle::after{content:"";width:2px;height:22px;background:#fff;border-radius:2px;box-shadow:2px 0 0 #fff,-2px 0 0 #fff;}
+  .layoutbar .handle:hover{background:var(--gold);}
+  .layouthint{font-size:13px;color:var(--slate);margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .btn-mini2{font-size:12px;padding:5px 11px;border-radius:6px;background:#fff;color:var(--teal);border:1.5px solid var(--mid);}
+  .btn-mini2.done{background:var(--green);color:#fff;border:none;}
+  .btn-add{background:var(--mid);color:#fff;} .btn-reset{background:#fff;color:var(--red);border:1.5px solid var(--red);}
+  .btn-del{background:#fff;color:var(--red);border:1.5px solid var(--red);font-size:13px;padding:6px 10px;}
+  button:hover{opacity:.9;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:1540px;margin:0 auto;}
+  .full{grid-column:1 / -1;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .card h2{color:var(--teal);font-size:20px;margin-bottom:14px;display:flex;align-items:center;gap:9px;}
+  .card h2 .ico{font-size:22px;}
+  .podium{display:flex;justify-content:center;align-items:flex-end;gap:16px;}
+  .pod{flex:1;max-width:225px;text-align:center;}
+  .pod .bar{border-radius:12px 12px 0 0;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:12px 8px 14px;}
+  .pod .nm{font-weight:bold;font-size:18px;line-height:1.15;}
+  .pod .rl{font-size:12px;opacity:.9;margin-top:2px;}
+  .pod .amt{font-size:24px;font-weight:bold;margin-top:8px;}
+  .pod .medal{font-size:29px;margin-bottom:6px;}
+  .pod.p1 .bar{background:linear-gradient(180deg,var(--gold),#b07f33);height:166px;}
+  .pod.p2 .bar{background:linear-gradient(180deg,var(--lteal),var(--mid));height:132px;}
+  .pod.p3 .bar{background:linear-gradient(180deg,var(--mid),var(--teal));height:106px;}
+  .pod .rank{background:rgba(255,255,255,.18);border-radius:20px;font-size:11.5px;padding:2px 10px;margin-top:6px;}
+  .club{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{background:var(--goldlt);border:1.5px solid var(--gold);border-radius:22px;padding:8px 15px;display:flex;align-items:center;gap:8px;font-weight:bold;color:var(--teal);font-size:16px;}
+  .empty{color:var(--mid);font-style:italic;font-size:15px;}
+  .streaks{display:flex;flex-direction:column;gap:11px;}
+  .streak{display:flex;align-items:center;justify-content:space-between;background:var(--hdrfill);border-radius:10px;padding:11px 15px;}
+  .streak .who{font-weight:bold;color:var(--teal);font-size:17px;}
+  .streak .flames{font-size:18px;letter-spacing:2px;} .streak .lbl{font-size:13px;color:var(--slate);}
+  .mi{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--green),#3a7049);border-radius:12px;padding:16px 20px;color:#fff;}
+  .mi .big{font-size:33px;} .mi .nm{font-size:21px;font-weight:bold;} .mi .delta{font-size:14.5px;opacity:.92;margin-top:2px;}
+  .rolesec{margin-bottom:18px;}
+  th.rolecol{font-size:13px;font-weight:bold;}
+  .rolehead{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
+  .rolehead .tag{font-size:13px;font-weight:bold;color:#fff;background:var(--mid);border-radius:20px;padding:4px 14px;}
+  .rolehead .tag.tech{background:var(--lteal);} .rolehead .tag.lead{background:var(--mid);} .rolehead .tag.office{background:var(--teal);}
+  .rolehead .ln{flex:1;height:1px;background:var(--line);}
+  table.scores{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:8px;table-layout:fixed;}
+  table.scores th{background:var(--teal);color:#fff;text-align:left;padding:7px 9px;font-size:12px;}
+  table.scores th.c,table.scores td.c{text-align:center;}
+  table.scores td{padding:7px 9px;border-bottom:1px solid var(--line);}
+  table.scores tr:nth-child(even) td{background:#faf7f0;}
+  .nm-cell{font-weight:bold;color:var(--slate);}
+  .dot{display:inline-block;width:15px;height:15px;border-radius:50%;vertical-align:middle;}
+  .d100{background:var(--green);} .d50{background:var(--amber);} .d0{background:#cfc8b8;}
+  .dprog{background:#fff;border:2px solid var(--lteal);} /* in-progress open dot */
+  .tot{font-weight:bold;color:var(--teal);white-space:nowrap;}
+  .legend{display:flex;gap:16px;align-items:center;justify-content:center;margin-top:14px;font-size:12.5px;color:var(--slate);flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend .sep{width:1px;height:16px;background:var(--line);}
+  .typekey{max-width:1540px;margin:14px auto 0;background:var(--hdrfill);border:1px solid var(--lteal);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--slate);}
+  .makeup{max-width:1540px;margin:22px auto 0;}
+  .makeup-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .makeup-col{border-radius:10px;padding:14px 16px;}
+  .cancol{background:#eef5ef;border:1px solid var(--green);}
+  .cantcol{background:#f6efe9;border:1px solid #c9a48f;}
+  .canhead{font-weight:bold;color:var(--green);font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .canhead .restore{font-size:12px;font-weight:normal;color:var(--mid);font-style:italic;}
+  .canthead{font-weight:bold;color:#9c4636;font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .mu-item{font-size:13px;color:var(--slate);padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06);line-height:1.4;}
+  .mu-item:last-child{border-bottom:none;}
+  .mu-item b{color:var(--teal);}
+  .cantcol .mu-item b{color:#9c4636;}
+  .mu-item.full100{background:rgba(200,146,61,.12);border:1px solid var(--gold);border-radius:7px;padding:8px 10px;margin-top:4px;}
+  .mu-item .r100{color:var(--gold);font-style:italic;font-weight:bold;font-size:11.5px;display:inline-block;}
+  .typekey b{color:var(--teal);}
+  .note{max-width:1540px;margin:18px auto 0;font-size:12.5px;color:var(--mid);text-align:center;font-style:italic;}
+  .foot{max-width:1540px;margin:16px auto 0;border-top:1px solid var(--line);padding-top:12px;text-align:center;font-size:12px;color:var(--mid);}
+  /* edit */
+  #editView{max-width:1540px;margin:0 auto;}
+  .edit-intro{background:var(--hdrfill);border:1px solid var(--lteal);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:14px;color:var(--slate);}
+  .edit-intro b{color:var(--teal);}
+  .setblock{margin-bottom:26px;}
+  .setblock h3{color:var(--teal);font-size:17px;margin-bottom:8px;}
+  table.editor{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;}
+  table.editor th{background:var(--teal);color:#fff;padding:8px 6px;font-size:11.5px;text-align:center;vertical-align:middle;}
+  table.editor td{padding:6px;border-bottom:1px solid var(--line);text-align:center;}
+  table.editor input.txt{font-family:inherit;font-size:13px;padding:6px 7px;border:1px solid var(--line);border-radius:6px;width:100%;}
+  table.editor input.num{font-family:inherit;font-size:13px;padding:6px 3px;border:1px solid var(--line);border-radius:6px;width:58px;text-align:center;}
+  table.editor select{font-family:inherit;font-size:12px;padding:6px 3px;border:1px solid var(--line);border-radius:6px;width:100%;cursor:pointer;}
+  select.s100{background:#e7f1ea;color:#2f6b41;} select.s50{background:#fbf1dd;color:#9a6e1f;}
+  select.loc{font-size:11px;min-width:120px;}
+  select.s0{background:#f6e9e6;color:#9c4636;} select.sNA{background:#eef4f5;color:#3f6b76;}
+  .editor td.name-col{text-align:left;min-width:130px;} .editor th.metric{min-width:92px;}
+  .editor th.lbl-edit input{width:100%;font-size:11px;text-align:center;border:1px dashed rgba(255,255,255,.5);background:rgba(255,255,255,.14);color:#fff;border-radius:5px;padding:3px 3px;font-family:inherit;font-weight:bold;}
+  .editor th.lbl-edit input::placeholder{color:rgba(255,255,255,.7);}
+  .edit-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .hint{font-size:12px;color:var(--mid);margin-top:6px;}
+  .hidden{display:none;}
+  @media print{ .toolbar,#editView{display:none;} }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="head">
+  <h1>Belmont Reliability Leaderboard</h1>
+  <div class="sub">Reliability Premium &mdash; Celebrating Who Shows Up</div>
+  <div class="period" id="period"></div>
+  <div class="wkwrap" id="wkwrap">
+    <div class="wklabel" id="wklabel"></div>
+    <div class="wkbar"><div class="wkfill" id="wkfill"></div></div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div id="authbar" class="authbar" style="display:none;"></div>
+  <button class="btn-layout" id="layoutBtn" onclick="toggleLayout()">&#8596; Adjust layout</button>
+  <button class="btn-edit" id="toggleBtn" onclick="toggleEdit()">&#9998; Edit scores</button>
+</div>
+
+<!-- ============ DISPLAY ============ -->
+<div id="displayView">
+  <div class="grid">
+    <div class="card full">
+      <h2><span class="ico">&#127942;</span> This Month&rsquo;s Top Performers</h2>
+      <div class="podium" id="podium"></div>
+    </div>
+    <div class="card">
+      <h2><span class="ico">&#11088;</span> The $500 Gold Club</h2>
+      <div class="club" id="goldclub"></div>
+      <p class="note" style="margin-top:14px;text-align:left;">Everyone on track for all five metrics this month &mdash; a full $500 in potential earnings.</p>
+    </div>
+    <div class="card">
+      <h2><span class="ico">&#128293;</span> Streaks &mdash; Consecutive Gold Months</h2>
+      <div class="streaks" id="streaks"></div>
+    </div>
+    <div class="card full">
+      <h2><span class="ico">&#128200;</span> Most Improved</h2>
+      <div id="mostimproved"></div>
+    </div>
+    <div class="card full">
+      <h2><span class="ico">&#128202;</span> The Whole Team &mdash; Potential Earnings This Month</h2>
+      <div id="layoutBar" class="layoutbar hidden"></div>
+      <div id="layoutHint" class="layouthint hidden">Drag the handles to resize columns &mdash; changes apply to all three tables together. <button class="btn-mini2" onclick="resetWidths()">Reset widths</button> <button class="btn-mini2 done" onclick="toggleLayout()">Done</button></div>
+      <div id="roleSections"></div>
+      <div class="legend">
+        <span><span class="dot d100"></span> Met</span>
+        <span><span class="dot d50"></span> Partial</span>
+        <span><span class="dot d0"></span> Missed</span>
+        <span><span class="dot dprog"></span> In progress</span>
+        <span class="sep"></span>
+        <span>Potential earnings shown as $ / $500</span>
+      </div>
+    </div>
+  </div>
+  <div class="card full makeup">
+    <h2><span class="ico">&#128296;</span> Making It Right &mdash; Recovering a Missed Mark</h2>
+    <p style="font-size:13.5px;color:var(--slate);margin-bottom:14px;">A miss isn&rsquo;t always the end of the month. Where the value can still be recovered, you can make it right and earn partial credit back. Where the value is time-sensitive and permanently lost &mdash; documentation that had to be captured on site, an estimate that had to go out same-day, a no-call/no-show that left the team short &mdash; it can&rsquo;t be made up. That&rsquo;s the line: recoverable value can be earned back; lost value can&rsquo;t.</p>
+    <div class="makeup-grid">
+      <div class="makeup-col cancol">
+        <div class="canhead"><span>&#10003;</span> Can be made up <span class="restore">&rarr; restores to Partial ($50)</span></div>
+        <div class="mu-item"><b>EOD after 6pm</b> &mdash; submit a complete EOD by the next morning.</div>
+        <div class="mu-item"><b>Reworks</b> &mdash; correct the issue promptly and document the fix.</div>
+        <div class="mu-item"><b>Missed water tag</b> &mdash; tag upcoming eligible jobs to catch up.</div>
+        <div class="mu-item"><b>Missed drop-offs</b> &mdash; schedule additional breakfasts to make up the difference.</div>
+        <div class="mu-item"><b>Attendance &mdash; out sick only</b> &mdash; pick up an after-hours loss when not on call and extra help is needed.</div>
+        <div class="mu-item full100"><b>Van reset</b> &mdash; stay late or come in Saturday to organize the warehouse and/or clean &amp; decontaminate equipment. <span class="r100">&rarr; restores to full ($100)</span></div>
+      </div>
+      <div class="makeup-col cantcol">
+        <div class="canthead"><span>&#10005;</span> Can&rsquo;t be made up</div>
+        <div class="mu-item"><b>Attendance &mdash; no-call/no-show</b> &mdash; leaves the team short with no notice; can&rsquo;t be recovered.</div>
+        <div class="mu-item"><b>Jobsite documentation</b> &mdash; photos, readings, notes, signed forms must be captured on site; it&rsquo;s imperative to substantiate invoices.</div>
+        <div class="mu-item"><b>Estimate / invoice turnaround</b> &mdash; same-day estimates and 24-hour invoices; the timing is the value.</div>
+        <div class="mu-item"><b>80% estimate conversion</b> &mdash; a monthly threshold; it&rsquo;s met or it isn&rsquo;t.</div>
+        <div class="mu-item"><b>Collections minimum</b> &mdash; the monthly target must be met; no makeup.</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--mid);margin-top:12px;font-style:italic;">A successful makeup restores the metric to Partial ($50) &mdash; it credits the recovery while keeping a clean, first-time Met ($100) meaningful. The Van Reset is the one exception: a full Saturday of warehouse organization / equipment decontamination restores the full $100, reflecting the real extra effort. Makeups are confirmed by management.</p>
+  </div>
+  <div class="typekey">
+    <b>How metrics earn:</b> &nbsp;<b>Building</b> metrics (jobsite docs, EOD, water tags, breakfasts, drop-offs) start at $0 and build up as you do them &mdash; an open dot means &ldquo;in progress, still earning.&rdquo; &nbsp;<b>Clean-record</b> metrics (attendance, no reworks, van reset) start the month on track for the full amount and stay green as long as the record stays clean. This way nothing rewards an unwanted event, and the open dots early in the month simply mean the month is still young.
+  </div>
+  <p class="note">We celebrate reliability out loud &mdash; and keep the coaching private. This board highlights achievement and progress; it never ranks anyone last. Not in the Gold Club yet? It&rsquo;s a club you can join this month.</p>
+  <div class="foot">Belmont Clean + Restore &mdash; Reliability Premium Framework &middot; Five metrics, up to $500/month + $300 quarterly streak &middot; Each role has its own scorecard<br><span style="display:inline-block;margin-top:8px;max-width:1000px;">Figures shown are <b>potential earnings</b>, not amounts yet earned. Nothing is considered earned until the four-week period is complete and the results are confirmed by management. Any bonus amount earned is added to the first paycheck after the four-week period concludes. This is a discretionary program and may be modified or discontinued at any time.</span></div>
+</div>
+
+<!-- ============ EDIT ============ -->
+<div id="editView" class="hidden">
+  <div class="edit-intro">
+    <b>How to update (weekly is ideal):</b> Set the <b>month</b> and <b>which week</b> you&rsquo;re in. For each person, set each metric to
+    <b>In progress</b> (still earning / clean so far), <b>Met</b>, <b>Partial</b>, or <b>Missed</b>. Leave &ldquo;building&rdquo; metrics on <b>In progress</b> until earned;
+    leave &ldquo;clean-record&rdquo; metrics on <b>In progress</b> too &mdash; they only change if something happens. <b>Streak</b> = consecutive perfect $500 months. <b>Last mo. $</b> feeds &ldquo;Most Improved.&rdquo;
+    Click <b>Save &amp; View</b> when done. Saves to this computer automatically.
+  </div>
+  <div style="margin-bottom:14px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
+    <span><label style="font-weight:bold;color:var(--teal);">Month: </label>
+      <input class="txt" id="periodInput" style="width:170px;display:inline-block;" placeholder="e.g. March 2026"></span>
+    <span><label style="font-weight:bold;color:var(--teal);">Week: </label>
+      <select id="weekInput" style="padding:7px;border-radius:6px;border:1px solid var(--line);">
+        <option value="1">Week 1 of 4</option><option value="2">Week 2 of 4</option>
+        <option value="3">Week 3 of 4</option><option value="4">Week 4 of 4</option>
+        <option value="5">Month complete</option></select></span>
+  </div>
+  <div id="editSets"></div>
+  <div class="edit-actions">
+    <button class="btn-save" onclick="saveAndView()">&#10003; Save &amp; View</button>
+    <button class="btn-reset" onclick="resetAll()">&#10005; Reset everything</button>
+  </div>
+  <p class="hint">Add a person with the &ldquo;+ Add&rdquo; button under each role group. Remove with the row&rsquo;s &ldquo;Remove&rdquo; button. Saved in this browser on this computer.</p>
+</div>
+
+<script>
+/* ===== METRIC TYPES =====
+   type: "build"  -> accumulating: In progress = $0 so far (open dot)
+         "clean"  -> clean-record: In progress = on track for full (open dot, but counts toward potential)
+   Scoring options offered depend on band:
+         band "tiered" -> Met/Partial/Missed ($100/$50/$0)
+         band "binary" -> Met/Missed ($100/$0)  [for $ and % targets]
+*/
+const ROLE_SETS = {
+  tech: { label:"Technician", cls:"tech", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"EOD Sent by 6pm", type:"build", band:"tiered"},
+    {name:"No Reworks", type:"clean", band:"tiered"},
+    {name:"Water Tags (cleaning jobs)", type:"build", band:"tiered"},
+  ]},
+  lead: { label:"Lead Tech / PM", cls:"lead", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"EOD Sent by 6pm", type:"build", band:"tiered"},
+    {name:"Van Clean + Reset", type:"clean", band:"tiered"},
+    {name:"Estimate (same day) + Invoice (24h)", type:"build", band:"tiered"},
+  ]},
+  office: { label:"Office / Admin", cls:"office", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Secure 4 Breakfasts/mo", type:"build", band:"tiered"},
+    {name:"Collections $260k/mo min", type:"build", band:"binary"},
+    {name:"10 Drop-offs/week", type:"build", band:"tiered"},
+    {name:"80% Estimates Converted", type:"build", band:"binary"},
+  ]},
+};
+
+const DEFAULT_STATE = {
+  period:"March 2026", week:2,
+  people:[
+    {name:"Alex R.",   role:"Project Manager", group:"lead",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:3, lastMonthTotal:500},
+    {name:"Jordan M.", role:"Project Manager", group:"lead",   location:"gypsum",     scores:[100,100,"P",100,100], goldStreak:1, lastMonthTotal:450},
+    {name:"Sam T.",    role:"Senior Tech",     group:"tech",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:2, lastMonthTotal:400},
+    {name:"Casey L.",  role:"Technician",      group:"tech",   location:"gypsum",     scores:[100,"P",100,100,"IP"], goldStreak:0, lastMonthTotal:300},
+    {name:"Morgan D.", role:"Technician",      group:"tech",   location:"carbondale", scores:[100,100,"IP",0,"IP"],  goldStreak:0, lastMonthTotal:200},
+    {name:"Riley P.",  role:"Office Manager",  group:"office", location:"gypsum",     scores:[100,100,100,"P",100],  goldStreak:2, lastMonthTotal:450},
+  ]
+};
+/* score cell values: 100, 50 (use "P"), 0, or "IP" (in progress) */
+const STORAGE_KEY="belmont_reliability_v2";
+
+/* ============================================================= */
+/*  ▼  SUPABASE CONFIG — Claude Code fills these in at deploy  ▼  */
+/*  Leave BOTH empty to run in LOCAL mode (localStorage only),   */
+/*  which is the offline fallback identical to the local file.   */
+const SUPABASE_URL  = "https://vhyfazcwhaiathwpmnez.supabase.co";   // e.g. "https://abcdxyz.supabase.co"
+const SUPABASE_ANON_KEY = "sb_publishable_fVDVzLeVUgac8jEp2m3qIw_l0rM11J3"; // the project's public anon key
+/*  ▲  See the deployment brief for the table schema + RLS.   ▲  */
+/* ============================================================= */
+
+/* Editable, quantified short column titles (per role group). Pre-filled with the numbers. */
+const DEFAULT_LABELS = {
+  tech:   ["Attendance","Jobsite Docs","EOD by 6pm","No Reworks","Water Tags"],
+  lead:   ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","Est. same-day / Inv. 24h"],
+  office: ["Attendance","4 Breakfasts/mo","$260k Collections","10 Drop-offs/wk","80% Conversion"],
+};
+
+const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
+// column width percentages: [name, m1, m2, m3, m4, m5, potential] — must sum to 100
+const DEFAULT_WIDTHS = [17,12,12,12,12,12,23];
+
+/* mode + auth scope. scope is set by Supabase Auth in cloud mode (see brief):
+   "owner"  -> can edit everyone
+   "carbondale" / "gypsum" -> can edit only that location's people
+   "viewer" -> read-only (default for anyone not signed in)            */
+let CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+let sb = CLOUD ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let userScope = "viewer";
+const ROW_ID = 1; // single-board row in the cloud table
+
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE)); // replaced by loadState()
+
+async function loadState(){
+  if(CLOUD){
+    try{
+      const { data, error } = await sb.from('board').select('state').eq('id', ROW_ID).single();
+      if(error) throw error;
+      if(data && data.state){ state = data.state; migrate(); return; }
+    }catch(e){ console.warn('Supabase read failed, using local fallback:', e); }
+  }
+  try{ const r=localStorage.getItem(STORAGE_KEY); if(r){ state=JSON.parse(r); migrate(); return; } }catch(e){}
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE)); migrate();
+}
+function migrate(){
+  // additive only — never touches existing people/scores
+  if(!state.labels) state.labels = JSON.parse(JSON.stringify(DEFAULT_LABELS));
+  ["tech","lead","office"].forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
+  (state.people||[]).forEach(p=>{ if(!p.location) p.location="carbondale"; }); // additive default
+  if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
+}
+async function persist(){
+  // always keep a local cache; also write to cloud when in cloud editor mode
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  if(CLOUD && userScope!=="viewer"){
+    try{
+      const { error } = await sb.from('board').update({ state, updated_at:new Date().toISOString() }).eq('id', ROW_ID);
+      if(error) throw error;
+    }catch(e){ console.warn('Supabase write failed:', e); alert('Could not save to the shared board (you may not have edit rights, or are offline). Your change is cached locally.'); }
+  }
+}
+const fmt=n=>"$"+(Number(n)||0).toLocaleString();
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function canEdit(p){ return userScope==="owner" || userScope===p.location; }
+
+/* normalize a raw cell to numeric earned-so-far and a status */
+function cellVal(raw){ if(raw==="IP") return 0; if(raw==="P") return 50; return Number(raw)||0; }
+function cellStatus(raw){ if(raw==="IP") return "prog"; const v=Number(raw==="P"?50:raw)||0; return v===100?"met":v===50?"part":"miss"; }
+
+function totals(p){
+  let earned=0; p.scores.forEach(s=>earned+=cellVal(s));
+  return earned;
+}
+function isPerfect(p){ return p.scores.length>0 && p.scores.every(s=>Number(s)===100); }
+
+/* ===== DISPLAY ===== */
+function render(){
+  document.getElementById('period').textContent=state.period;
+  // week indicator
+  const wk=Number(state.week)||1;
+  const wl=document.getElementById('wklabel'), wf=document.getElementById('wkfill');
+  if(wk>=5){ wl.textContent="Month complete"; wf.style.width="100%"; }
+  else { wl.textContent="Week "+wk+" of 4 \u2014 the month is still being earned"; wf.style.width=(wk/4*100)+"%"; }
+
+  const data=state.people.map(p=>({...p, total:totals(p), perfect:isPerfect(p),
+    improved:totals(p)-(Number(p.lastMonthTotal)||totals(p))}));
+
+  // podium — stays aspirational until past Week 1 AND someone has pulled ahead
+  const ranked=[...data].sort((a,b)=>b.total-a.total||b.goldStreak-a.goldStreak).slice(0,3);
+  const order=[1,0,2],medals=["&#129351;","&#129352;","&#129353;"],classes=["p1","p2","p3"],lbls=["1st","2nd","3rd"];
+  const pod=document.getElementById('podium'); pod.innerHTML="";
+  const wkNow=Number(state.week)||1;
+  const topScore=ranked.length?ranked[0].total:0;
+  const restScores=data.map(p=>p.total).sort((a,b)=>b-a).slice(1);
+  const secondScore=restScores.length?restScores[0]:0;
+  // "pulled ahead" = someone reached a full $500, OR the leader is clearly out front of the next person
+  const someoneAhead = topScore>=500 || (topScore>0 && (topScore-secondScore)>=100);
+  const revealPodium = wkNow>=2 && someoneAhead && data.length>0;
+  if(!revealPodium){
+    pod.innerHTML = `<div style="text-align:center;width:100%;padding:24px 10px;">
+      <div style="font-size:40px;margin-bottom:8px;">&#127942;</div>
+      <div style="font-size:21px;font-weight:bold;color:var(--teal);">Three spots open. Will you be one of them?</div>
+      <div style="font-size:14px;color:var(--mid);margin-top:6px;font-style:italic;">The month is still young &mdash; the podium fills in as front-runners pull ahead.</div></div>`;
+  } else {
+    order.forEach(idx=>{const p=ranked[idx]; if(!p)return; const d=document.createElement('div'); d.className="pod "+classes[idx];
+      d.innerHTML=`<div class="medal">${medals[idx]}</div><div class="bar"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role)}</div><div class="amt">${fmt(p.total)}</div><div class="rank">${lbls[idx]} &middot; of $500</div></div>`; pod.appendChild(d);});
+  }
+
+  // gold club
+  const club=document.getElementById('goldclub'); club.innerHTML="";
+  const golds=data.filter(p=>p.perfect);
+  if(!golds.length) club.innerHTML='<span class="empty">No perfect $500 months yet &mdash; be the first!</span>';
+  else golds.forEach(p=>{const c=document.createElement('div');c.className="chip";c.innerHTML=`<span style="color:var(--gold)">&#11088;</span> ${esc(p.name)}`;club.appendChild(c);});
+
+  // streaks
+  const se=document.getElementById('streaks'); se.innerHTML="";
+  const st=data.filter(p=>p.goldStreak>=2).sort((a,b)=>b.goldStreak-a.goldStreak);
+  if(!st.length) se.innerHTML='<span class="empty">No multi-month streaks going right now &mdash; this is how they start.</span>';
+  else st.forEach(p=>{const fl="&#128293;".repeat(Math.min(p.goldStreak,6));
+    const msg=p.goldStreak>=3?"Streak bonus earned!":(3-p.goldStreak)+" more for the $300 bonus";
+    const r=document.createElement('div');r.className="streak";
+    r.innerHTML=`<div><div class="who">${esc(p.name)}</div><div class="lbl">${msg}</div></div><div class="flames">${fl} <span style="font-size:14px;color:var(--slate);">${p.goldStreak} mo</span></div>`;se.appendChild(r);});
+
+  // most improved
+  const mi=document.getElementById('mostimproved');
+  const imp=data.filter(p=>p.improved>0).sort((a,b)=>b.improved-a.improved);
+  if(!imp.length) mi.innerHTML='<p class="empty">Most Improved highlights the biggest jump from last month &mdash; check back as the month fills in.</p>';
+  else {const p=imp[0]; mi.innerHTML=`<div class="mi"><div class="big">&#128640;</div><div><div class="nm">${esc(p.name)} &mdash; up ${fmt(p.improved)} from last month</div><div class="delta">${esc(p.role)} &middot; climbed from ${fmt(p.lastMonthTotal)} to ${fmt(p.total)}. That&rsquo;s the direction that counts.</div></div></div>`;}
+
+  // role sections
+  const rs=document.getElementById('roleSections'); rs.innerHTML="";
+  ["tech","lead","office"].forEach(gk=>{
+    const set=ROLE_SETS[gk]; const members=data.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!members.length) return;
+    const sec=document.createElement('div'); sec.className="rolesec";
+    const roleColor = gk==="tech"?"var(--lteal)":gk==="lead"?"var(--mid)":"var(--teal)";
+    const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
+    let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
+    set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(state.labels[gk][i])}</th>`);
+    html+='<th class="c">Current Potential</th></tr>';
+    members.forEach(p=>{
+      html+=`<tr><td class="nm-cell">${esc(p.name)}${p.perfect?' <span style="color:var(--gold)">&#11088;</span>':''}</td>`;
+      p.scores.forEach(s=>{ const st=cellStatus(s);
+        const cls=st==="met"?'d100':st==="part"?'d50':st==="miss"?'d0':'dprog';
+        html+=`<td class="c"><span class="dot ${cls}"></span></td>`;});
+      html+=`<td class="c tot">${fmt(p.total)} <span style="color:var(--mid);font-weight:normal;">/ $500</span></td></tr>`;
+    });
+    html+='</table>'; sec.innerHTML=html; rs.appendChild(sec);
+  });
+}
+function shortName(n){ // shorten long metric labels for column headers
+  return n.replace("Attendance & Punctuality","Attendance").replace("Jobsite Documentation","Jobsite Docs")
+          .replace("EOD Sent by 6pm","EOD by 6pm").replace("Water Tags (cleaning jobs)","Water Tags")
+          .replace("Estimate (same day) + Invoice (24h)","Est./Invoice").replace("Secure 4 Breakfasts/mo","Breakfasts")
+          .replace("Collections $260k/mo min","Collections").replace("10 Drop-offs/week","Drop-offs")
+          .replace("80% Estimates Converted","Conversion").replace("Van Clean + Reset","Van Reset");
+}
+
+/* ===== EDIT ===== */
+let editing=false;
+function toggleEdit(){ editing?saveAndView():openEdit(); }
+function openEdit(){ editing=true;
+  document.getElementById('displayView').classList.add('hidden');
+  document.getElementById('editView').classList.remove('hidden');
+  const b=document.getElementById('toggleBtn'); b.textContent="\u2713 Save & View"; b.className="btn-save";
+  document.getElementById('periodInput').value=state.period;
+  document.getElementById('weekInput').value=state.week;
+  buildEditor();
+}
+function buildEditor(){
+  const wrap=document.getElementById('editSets'); wrap.innerHTML="";
+  ["tech","lead","office"].forEach(gk=>{
+    const set=ROLE_SETS[gk];
+    const block=document.createElement('div'); block.className="setblock";
+    let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
+    set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(state.labels[gk][mi])}" placeholder="Metric ${mi+1}"><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" \u00b7 hit/miss":""}</span></th>`);
+    h+='<th>Streak</th><th>Last mo.$</th><th></th></tr>';
+    state.people.forEach((p,pi)=>{ if(p.group!==gk) return;
+      const editable = canEdit(p); const dis = editable ? "" : " disabled";
+      const lockNote = editable ? "" : ` title="${esc(LOCATIONS[p.location]||p.location)} — outside your edit access"`;
+      h+=`<tr${editable?"":' style="opacity:.55;"'}${lockNote}><td class="name-col"><input class="txt" data-f="name" data-i="${pi}" value="${esc(p.name)}"${dis}></td>
+          <td><input class="txt" data-f="role" data-i="${pi}" value="${esc(p.role)}"${dis}></td>
+          <td><select class="loc" data-f="location" data-i="${pi}"${dis}>`;
+      Object.keys(LOCATIONS).forEach(lk=> h+=`<option value="${lk}"${p.location===lk?" selected":""}>${esc(LOCATIONS[lk])}</option>`);
+      h+=`</select></td>`;
+      set.metrics.forEach((m,si)=>{
+        const raw=p.scores[si]; const cur = raw==="IP"?"IP":raw==="P"?"50":String(Number(raw)||0);
+        const cls = cur==="IP"?"sNA":cur==="100"?"s100":cur==="50"?"s50":"s0";
+        h+=`<td><select class="${cls}" data-i="${pi}" data-s="${si}" onchange="recolor(this)"${dis}>
+            <option value="IP"${cur==="IP"?" selected":""}>In progress</option>
+            <option value="100"${cur==="100"?" selected":""}>Met</option>`;
+        if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
+        h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
+      });
+      h+=`<td><input class="num" data-f="goldStreak" data-i="${pi}" type="number" min="0" value="${Number(p.goldStreak)||0}"${dis}></td>
+          <td><input class="num" data-f="lastMonthTotal" data-i="${pi}" type="number" min="0" step="50" value="${Number(p.lastMonthTotal)||0}"${dis}></td>
+          <td>${editable?`<button class="btn-del" onclick="removePerson(${pi})">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td></tr>`;
+    });
+    h+='</table>';
+    block.innerHTML=h;
+    const addBtn=document.createElement('button'); addBtn.className="btn-add"; addBtn.style.marginTop="8px";
+    addBtn.innerHTML="&#43; Add "+set.label;
+    addBtn.onclick=()=>addPerson(gk);
+    block.appendChild(addBtn);
+    wrap.appendChild(block);
+  });
+}
+function recolor(sel){ sel.className = sel.value==="IP"?"sNA":sel.value==="100"?"s100":sel.value==="50"?"s50":"s0"; }
+function collectEdits(){
+  state.period=document.getElementById('periodInput').value||state.period;
+  state.week=Number(document.getElementById('weekInput').value)||1;
+  document.querySelectorAll('#editSets input[data-lbl-g]').forEach(inp=>{
+    const g=inp.dataset.lblG, i=Number(inp.dataset.lblI);
+    state.labels[g][i] = inp.value || DEFAULT_LABELS[g][i];
+  });
+  document.querySelectorAll('#editSets input[data-f]').forEach(inp=>{
+    const i=Number(inp.dataset.i),f=inp.dataset.f;
+    if(f==='name'||f==='role') state.people[i][f]=inp.value; else state.people[i][f]=Number(inp.value)||0;
+  });
+  document.querySelectorAll('#editSets select[data-f="location"]').forEach(sel=>{
+    state.people[Number(sel.dataset.i)].location = sel.value;
+  });
+  document.querySelectorAll('#editSets select[data-s]').forEach(sel=>{
+    const v=sel.value; state.people[Number(sel.dataset.i)].scores[Number(sel.dataset.s)] = v==="IP"?"IP":v==="50"?"P":Number(v);
+  });
+}
+function saveAndView(){ collectEdits(); persist(); editing=false;
+  document.getElementById('editView').classList.add('hidden');
+  document.getElementById('displayView').classList.remove('hidden');
+  const b=document.getElementById('toggleBtn'); b.textContent="\u270E Edit scores"; b.className="btn-edit"; render();
+}
+function addPerson(gk){ collectEdits();
+  const loc = (userScope==="carbondale"||userScope==="gypsum") ? userScope : "carbondale";
+  state.people.push({name:"New Person",role:"Role",group:gk,location:loc,scores:["IP","IP","IP","IP","IP"],goldStreak:0,lastMonthTotal:0});
+  persist(); buildEditor();
+}
+function removePerson(i){ collectEdits();
+  if(confirm("Remove "+(state.people[i].name||"this person")+" from the board?")){ state.people.splice(i,1); persist(); buildEditor(); }
+}
+function resetAll(){
+  if(confirm("Reset the WHOLE board to a blank start? This clears all people and scores on this computer. Cannot be undone.")){
+    if(confirm("Are you sure? Everything currently on the board will be erased.")){
+      state={period:"",week:1,people:[],labels:JSON.parse(JSON.stringify(DEFAULT_LABELS))}; persist(); buildEditor();
+      document.getElementById('periodInput').value=""; document.getElementById('weekInput').value=1;
+    }
+  }
+}
+/* ===== STARTUP / AUTH ===== */
+async function refreshScope(){
+  if(!CLOUD){ userScope="owner"; return; }   // local fallback = full control
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user){ userScope="viewer"; return; }
+    // role is read from a profiles table keyed by the user id (see brief).
+    const { data, error } = await sb.from('editors').select('scope').eq('id', user.id).single();
+    userScope = (!error && data && data.scope) ? data.scope : "viewer";
+  }catch(e){ userScope="viewer"; }
+}
+function updateAuthBar(){
+  const bar=document.getElementById('authbar'); if(!bar) return;
+  if(!CLOUD){ bar.style.display="none"; return; }
+  bar.style.display="";
+  const scopeLabel = userScope==="owner"?"Owner — full access"
+    : userScope==="carbondale"?"Carbondale editor" : userScope==="gypsum"?"Gypsum editor" : "View only";
+  bar.innerHTML = userScope==="viewer"
+    ? `<span class="scope view">${scopeLabel}</span> <button class="btn-mini" onclick="signIn()">Sign in to edit</button>`
+    : `<span class="scope edit">${scopeLabel}</span> <button class="btn-mini" onclick="signOut()">Sign out</button>`;
+  // hide the Edit button entirely for viewers
+  const tb=document.getElementById('toggleBtn'); if(tb) tb.style.display = userScope==="viewer" ? "none" : "";
+}
+async function signIn(){
+  const email = prompt("Enter your work email to receive a one-time sign-in link:");
+  if(!email) return;
+  const { error } = await sb.auth.signInWithOtp({ email });
+  alert(error ? ("Sign-in error: "+error.message) : "Check your email for a sign-in link, then reopen this page.");
+}
+async function signOut(){ await sb.auth.signOut(); userScope="viewer"; updateAuthBar(); render(); }
+
+/* ===== LAYOUT (column width) MODE ===== */
+let layoutOn=false;
+const COL_LABELS=["Name","Metric 1","Metric 2","Metric 3","Metric 4","Metric 5","Potential"];
+const MIN_W=6;
+function toggleLayout(){
+  layoutOn=!layoutOn;
+  const bar=document.getElementById('layoutBar'), hint=document.getElementById('layoutHint'), btn=document.getElementById('layoutBtn');
+  if(layoutOn){
+    bar.classList.remove('hidden'); hint.classList.remove('hidden');
+    btn.textContent="\u2713 Done adjusting"; btn.className="btn-save";
+    buildLayoutBar();
+  } else {
+    bar.classList.add('hidden'); hint.classList.add('hidden');
+    btn.innerHTML="&#8596; Adjust layout"; btn.className="btn-layout";
+    persist();
+  }
+}
+function buildLayoutBar(){
+  const bar=document.getElementById('layoutBar'); bar.innerHTML="";
+  state.colWidths.forEach((w,i)=>{
+    const seg=document.createElement('div'); seg.className="seg"; seg.dataset.seg=i;
+    seg.style.flex=w+" 0 0"; seg.textContent=COL_LABELS[i];
+    bar.appendChild(seg);
+    if(i<state.colWidths.length-1){
+      const h=document.createElement('div'); h.className="handle"; h.dataset.handle=i;
+      h.addEventListener('pointerdown',startDrag);
+      bar.appendChild(h);
+    }
+  });
+}
+let dragInfo=null;
+function startDrag(e){
+  e.preventDefault();
+  const k=Number(e.currentTarget.dataset.handle);
+  const barW=document.getElementById('layoutBar').getBoundingClientRect().width;
+  dragInfo={k, startX:e.clientX, w0:state.colWidths[k], w1:state.colWidths[k+1], barW};
+  e.currentTarget.setPointerCapture(e.pointerId);
+  window.addEventListener('pointermove',onDrag);
+  window.addEventListener('pointerup',endDrag);
+}
+function onDrag(e){
+  if(!dragInfo) return;
+  const dPct=((e.clientX-dragInfo.startX)/dragInfo.barW)*100;
+  let nw0=dragInfo.w0+dPct, nw1=dragInfo.w1-dPct;
+  if(nw0<MIN_W){ nw1-=(MIN_W-nw0); nw0=MIN_W; }
+  if(nw1<MIN_W){ nw0-=(MIN_W-nw1); nw1=MIN_W; }
+  state.colWidths[dragInfo.k]=nw0; state.colWidths[dragInfo.k+1]=nw1;
+  applyWidthsLive();
+}
+function endDrag(){
+  dragInfo=null;
+  window.removeEventListener('pointermove',onDrag);
+  window.removeEventListener('pointerup',endDrag);
+  state.colWidths=state.colWidths.map(w=>Math.round(w*10)/10);
+  persist(); applyWidthsLive();
+}
+function applyWidthsLive(){
+  document.querySelectorAll('#roleSections table.scores colgroup').forEach(cg=>{
+    const cols=cg.querySelectorAll('col');
+    state.colWidths.forEach((w,i)=>{ if(cols[i]) cols[i].style.width=w+"%"; });
+  });
+  document.querySelectorAll('#layoutBar .seg').forEach(seg=>{
+    seg.style.flex=state.colWidths[Number(seg.dataset.seg)]+" 0 0";
+  });
+}
+function resetWidths(){
+  state.colWidths=DEFAULT_WIDTHS.slice(); persist(); buildLayoutBar(); applyWidthsLive();
+}
+
+(async function init(){
+  await refreshScope();
+  await loadState();
+  updateAuthBar();
+  render();
+  if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); updateAuthBar(); await loadState(); render(); });
+  }
+})();
+</script>
+</body>
+</html>
