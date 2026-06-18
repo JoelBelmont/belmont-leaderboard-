@@ -551,10 +551,13 @@ function updateAuthBar(){
   const tb=document.getElementById('toggleBtn'); if(tb) tb.style.display = userScope==="viewer" ? "none" : "";
 }
 async function signIn(){
-  const email = prompt("Enter your work email to receive a one-time sign-in link:");
+  const email = prompt("Enter your work email:");
   if(!email) return;
-  const { error } = await sb.auth.signInWithOtp({ email });
-  alert(error ? ("Sign-in error: "+error.message) : "Check your email for a sign-in link, then reopen this page.");
+  const password = prompt("Enter your password:");
+  if(!password) return;
+  const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+  if(error){ alert("Sign-in error: "+error.message); return; }
+  await refreshScope(); updateAuthBar(); await loadState(); render();
 }
 async function signOut(){ await sb.auth.signOut(); userScope="viewer"; updateAuthBar(); render(); }
 
