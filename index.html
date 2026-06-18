@@ -20,6 +20,12 @@
   .wklabel{font-size:13px;color:var(--mid);margin-bottom:5px;text-align:center;}
   .wkbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;}
   .wkfill{height:100%;background:linear-gradient(90deg,var(--lteal),var(--mid));border-radius:6px;}
+  .locbanner{margin-top:9px;font-size:19px;font-weight:bold;color:var(--mid);letter-spacing:.3px;}
+  .locToggle{max-width:1540px;margin:16px auto 0;display:flex;justify-content:center;}
+  .locToggle button{border:1.5px solid var(--mid);background:#fff;color:var(--teal);font-size:14px;font-weight:bold;padding:9px 26px;border-radius:0;}
+  .locToggle button:first-child{border-radius:9px 0 0 9px;}
+  .locToggle button:last-child{border-radius:0 9px 9px 0;border-left:none;}
+  .locToggle button.active{background:var(--mid);color:#fff;}
   .toolbar{max-width:1540px;margin:16px auto 22px;display:flex;justify-content:flex-end;align-items:center;gap:12px;}
   .authbar{display:flex;align-items:center;gap:10px;margin-right:auto;font-size:13px;}
   .authbar .scope{font-weight:bold;padding:5px 12px;border-radius:20px;}
@@ -132,12 +138,15 @@
 <div class="head">
   <h1>Belmont Reliability Leaderboard</h1>
   <div class="sub">Reliability Premium &mdash; Celebrating Who Shows Up</div>
+  <div class="locbanner" id="locbanner"></div>
   <div class="period" id="period"></div>
   <div class="wkwrap" id="wkwrap">
     <div class="wklabel" id="wklabel"></div>
     <div class="wkbar"><div class="wkfill" id="wkfill"></div></div>
   </div>
 </div>
+
+<div class="locToggle" id="locToggle" style="display:none;"></div>
 
 <div class="toolbar">
   <div id="authbar" class="authbar" style="display:none;"></div>
@@ -299,6 +308,10 @@ const DEFAULT_LABELS = {
 };
 
 const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
+// Per-team share links use an obscured slug:  ?loc=carbondale-417  /  ?loc=gypsum-315
+const LOCATION_LINKS = { "carbondale-417":"carbondale", "gypsum-315":"gypsum" };
+let viewLoc = "carbondale";   // which location's board is currently shown
+let lockedLoc = false;        // true = dedicated team link or signed-in manager (no toggle)
 // column width percentages: [name, m1, m2, m3, m4, m5, potential] — must sum to 100
 const DEFAULT_WIDTHS = [17,12,12,12,12,12,23];
 
@@ -364,7 +377,9 @@ function render(){
   if(wk>=5){ wl.textContent="Month complete"; wf.style.width="100%"; }
   else { wl.textContent="Week "+wk+" of 4 \u2014 the month is still being earned"; wf.style.width=(wk/4*100)+"%"; }
 
-  const data=state.people.map(p=>({...p, total:totals(p), perfect:isPerfect(p),
+  document.getElementById('locbanner').textContent = LOCATIONS[viewLoc] || "";
+  const visible = state.people.filter(p=>p.location===viewLoc);
+  const data=visible.map(p=>({...p, total:totals(p), perfect:isPerfect(p),
     improved:totals(p)-(Number(p.lastMonthTotal)||totals(p))}));
 
   // podium — stays aspirational until past Week 1 AND someone has pulled ahead
@@ -437,6 +452,27 @@ function shortName(n){ // shorten long metric labels for column headers
           .replace("Collections $260k/mo min","Collections").replace("10 Drop-offs/week","Drop-offs")
           .replace("80% Estimates Converted","Conversion").replace("Van Clean + Reset","Van Reset");
 }
+
+/* ===== LOCATION VIEW (per-team boards + owner toggle) ===== */
+function resolveView(){
+  const param = new URLSearchParams(location.search).get('loc') || "";
+  let loc = LOCATION_LINKS[param];
+  if(!loc && (param==="carbondale"||param==="gypsum")) loc = param; // plain names allowed too
+  if(loc){ viewLoc = loc; lockedLoc = true; return; }          // dedicated team link
+  if(userScope==="carbondale" || userScope==="gypsum"){        // manager lands on own team
+    viewLoc = userScope; lockedLoc = true; return;
+  }
+  lockedLoc = false;                                            // owner / company view -> toggle
+  if(viewLoc!=="carbondale" && viewLoc!=="gypsum") viewLoc="carbondale";
+}
+function buildLocToggle(){
+  const t=document.getElementById('locToggle'); if(!t) return;
+  if(lockedLoc){ t.style.display="none"; t.innerHTML=""; return; }
+  t.style.display="";
+  t.innerHTML = Object.keys(LOCATIONS).map(k=>
+    `<button class="${k===viewLoc?'active':''}" onclick="setViewLoc('${k}')">${esc(LOCATIONS[k])}</button>`).join("");
+}
+function setViewLoc(k){ viewLoc=k; buildLocToggle(); render(); }
 
 /* ===== EDIT ===== */
 let editing=false;
@@ -549,6 +585,8 @@ function updateAuthBar(){
     : `<span class="scope edit">${scopeLabel}</span> <button class="btn-mini" onclick="signOut()">Sign out</button>`;
   // hide the Edit button entirely for viewers
   const tb=document.getElementById('toggleBtn'); if(tb) tb.style.display = userScope==="viewer" ? "none" : "";
+  // hide layout adjust from view-only visitors too
+  const lb=document.getElementById('layoutBtn'); if(lb) lb.style.display = userScope==="viewer" ? "none" : "";
 }
 async function signIn(){
   const email = prompt("Enter your work email:");
@@ -557,9 +595,9 @@ async function signIn(){
   if(!password) return;
   const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
   if(error){ alert("Sign-in error: "+error.message); return; }
-  await refreshScope(); updateAuthBar(); await loadState(); render();
+  await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); render();
 }
-async function signOut(){ await sb.auth.signOut(); userScope="viewer"; updateAuthBar(); render(); }
+async function signOut(){ await sb.auth.signOut(); userScope="viewer"; resolveView(); buildLocToggle(); updateAuthBar(); render(); }
 
 /* ===== LAYOUT (column width) MODE ===== */
 let layoutOn=false;
@@ -633,10 +671,12 @@ function resetWidths(){
 (async function init(){
   await refreshScope();
   await loadState();
+  resolveView();
+  buildLocToggle();
   updateAuthBar();
   render();
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); updateAuthBar(); await loadState(); render(); });
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); render(); });
   }
 })();
 </script>
