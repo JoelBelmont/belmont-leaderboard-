@@ -75,7 +75,7 @@
   th.rolecol{font-size:13px;font-weight:bold;}
   .rolehead{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
   .rolehead .tag{font-size:13px;font-weight:bold;color:#fff;background:var(--mid);border-radius:20px;padding:4px 14px;}
-  .rolehead .tag.tech{background:var(--lteal);} .rolehead .tag.lead{background:var(--mid);} .rolehead .tag.office{background:var(--teal);}
+  .rolehead .tag.tech{background:var(--lteal);} .rolehead .tag.senior_tech{background:var(--mid);} .rolehead .tag.pm_senior{background:var(--gold);} .rolehead .tag.office{background:var(--teal);}
   .rolehead .ln{flex:1;height:1px;background:var(--line);}
   table.scores{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:8px;table-layout:fixed;}
   table.scores th{background:var(--teal);color:#fff;text-align:left;padding:7px 9px;font-size:12px;}
@@ -261,7 +261,14 @@ const ROLE_SETS = {
     {name:"No Reworks", type:"clean", band:"tiered"},
     {name:"Water Tags (cleaning jobs)", type:"build", band:"tiered"},
   ]},
-  lead: { label:"Lead Tech / PM", cls:"lead", metrics:[
+  senior_tech: { label:"Senior Tech", cls:"senior_tech", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"EOD Sent by 6pm", type:"build", band:"tiered"},
+    {name:"Van Clean + Reset", type:"clean", band:"tiered"},
+    {name:"Estimate (same day) + Invoice (24h)", type:"build", band:"tiered"},
+  ]},
+  pm_senior: { label:"PM / Senior Roles", cls:"pm_senior", metrics:[
     {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
     {name:"Jobsite Documentation", type:"build", band:"tiered"},
     {name:"EOD Sent by 6pm", type:"build", band:"tiered"},
@@ -280,8 +287,8 @@ const ROLE_SETS = {
 const DEFAULT_STATE = {
   period:"March 2026", week:2,
   people:[
-    {name:"Alex R.",   role:"Project Manager", group:"lead",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:3, lastMonthTotal:500},
-    {name:"Jordan M.", role:"Project Manager", group:"lead",   location:"gypsum",     scores:[100,100,"P",100,100], goldStreak:1, lastMonthTotal:450},
+    {name:"Alex R.",   role:"Project Manager", group:"pm_senior",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:3, lastMonthTotal:500},
+    {name:"Jordan M.", role:"Senior Tech",     group:"senior_tech", location:"gypsum",     scores:[100,100,"P",100,100], goldStreak:1, lastMonthTotal:450},
     {name:"Sam T.",    role:"Senior Tech",     group:"tech",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:2, lastMonthTotal:400},
     {name:"Casey L.",  role:"Technician",      group:"tech",   location:"gypsum",     scores:[100,"P",100,100,"IP"], goldStreak:0, lastMonthTotal:300},
     {name:"Morgan D.", role:"Technician",      group:"tech",   location:"carbondale", scores:[100,100,"IP",0,"IP"],  goldStreak:0, lastMonthTotal:200},
@@ -302,9 +309,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_fVDVzLeVUgac8jEp2m3qIw_l0rM11J3"; // t
 
 /* Editable, quantified short column titles (per role group). Pre-filled with the numbers. */
 const DEFAULT_LABELS = {
-  tech:   ["Attendance","Jobsite Docs","EOD by 6pm","No Reworks","Water Tags"],
-  lead:   ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","Est. same-day / Inv. 24h"],
-  office: ["Attendance","4 Breakfasts/mo","$260k Collections","10 Drop-offs/wk","80% Conversion"],
+  tech:        ["Attendance","Jobsite Docs","EOD by 6pm","No Reworks","Water Tags"],
+  senior_tech: ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","Est. same-day / Inv. 24h"],
+  pm_senior:   ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","Est. same-day / Inv. 24h"],
+  office:      ["Attendance","4 Breakfasts/mo","$260k Collections","10 Drop-offs/wk","80% Conversion"],
 };
 
 const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
@@ -340,7 +348,11 @@ async function loadState(){
 function migrate(){
   // additive only — never touches existing people/scores
   if(!state.labels) state.labels = JSON.parse(JSON.stringify(DEFAULT_LABELS));
-  ["tech","lead","office"].forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
+  ["tech","senior_tech","pm_senior","office"].forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
+  // split the old "Lead Tech / PM" group into Senior Tech + PM/Senior Roles.
+  // Everyone stored as "lead" defaults to senior_tech; Joel moves the actual PMs to pm_senior in Edit mode.
+  // Idempotent + additive: only the group field changes, and only for old "lead" people (no-op if none exist).
+  (state.people||[]).forEach(p=>{ if(p.group==="lead") p.group="senior_tech"; });
   (state.people||[]).forEach(p=>{ if(!p.location) p.location="carbondale"; }); // additive default
   if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
 }
@@ -426,11 +438,11 @@ function render(){
 
   // role sections
   const rs=document.getElementById('roleSections'); rs.innerHTML="";
-  ["tech","lead","office"].forEach(gk=>{
+  ["tech","senior_tech","pm_senior","office"].forEach(gk=>{
     const set=ROLE_SETS[gk]; const members=data.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
     if(!members.length) return;
     const sec=document.createElement('div'); sec.className="rolesec";
-    const roleColor = gk==="tech"?"var(--lteal)":gk==="lead"?"var(--mid)":"var(--teal)";
+    const roleColor = gk==="tech"?"var(--lteal)":gk==="senior_tech"?"var(--mid)":gk==="pm_senior"?"var(--gold)":"var(--teal)";
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
     set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(state.labels[gk][i])}</th>`);
@@ -487,7 +499,7 @@ function openEdit(){ editing=true;
 }
 function buildEditor(){
   const wrap=document.getElementById('editSets'); wrap.innerHTML="";
-  ["tech","lead","office"].forEach(gk=>{
+  ["tech","senior_tech","pm_senior","office"].forEach(gk=>{
     const set=ROLE_SETS[gk];
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
