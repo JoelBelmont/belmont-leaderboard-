@@ -8,7 +8,7 @@
   :root{
     --teal:#1F4E5F; --mid:#2E7D8F; --gold:#C8923D; --sand:#F2EAD9; --slate:#3A4A52;
     --green:#4A8C5E; --amber:#D9A441; --paper:#FBF8F2; --line:#D8D2C4; --lteal:#5B9AA8;
-    --goldlt:#F5ECDC; --hdrfill:#EAF1F3; --red:#B5503C;
+    --goldlt:#F5ECDC; --hdrfill:#EAF1F3; --red:#B5503C; --midteal:#276677;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--slate);padding:24px 30px 50px;}
@@ -75,7 +75,7 @@
   th.rolecol{font-size:13px;font-weight:bold;}
   .rolehead{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
   .rolehead .tag{font-size:13px;font-weight:bold;color:#fff;background:var(--mid);border-radius:20px;padding:4px 14px;}
-  .rolehead .tag.tech{background:var(--lteal);} .rolehead .tag.senior_tech{background:var(--mid);} .rolehead .tag.pm_senior{background:var(--gold);} .rolehead .tag.office{background:var(--teal);}
+  .rolehead .tag.tech{background:var(--lteal);} .rolehead .tag.senior_tech{background:var(--mid);} .rolehead .tag.pm_senior{background:var(--midteal);} .rolehead .tag.office{background:var(--teal);}
   .rolehead .ln{flex:1;height:1px;background:var(--line);}
   table.scores{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:8px;table-layout:fixed;}
   table.scores th{background:var(--teal);color:#fff;text-align:left;padding:7px 9px;font-size:12px;}
@@ -442,7 +442,7 @@ function render(){
     const set=ROLE_SETS[gk]; const members=data.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
     if(!members.length) return;
     const sec=document.createElement('div'); sec.className="rolesec";
-    const roleColor = gk==="tech"?"var(--lteal)":gk==="senior_tech"?"var(--mid)":gk==="pm_senior"?"var(--gold)":"var(--teal)";
+    const roleColor = gk==="tech"?"var(--lteal)":gk==="senior_tech"?"var(--mid)":gk==="pm_senior"?"var(--midteal)":"var(--teal)";
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
     set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(state.labels[gk][i])}</th>`);
