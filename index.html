@@ -195,21 +195,11 @@
     <div class="makeup-grid">
       <div class="makeup-col cancol">
         <div class="canhead"><span>&#10003;</span> Can be made up <span class="restore">&rarr; restores to Partial ($50)</span></div>
-        <div class="mu-item"><b>EOD after 6pm</b> &mdash; submit a complete EOD by the next morning.</div>
-        <div class="mu-item"><b>Reworks</b> &mdash; correct the issue promptly and document the fix.</div>
-        <div class="mu-item"><b>Missed water tag</b> &mdash; tag upcoming eligible jobs to catch up.</div>
-        <div class="mu-item"><b>Missed drop-offs</b> &mdash; schedule additional breakfasts to make up the difference.</div>
-        <div class="mu-item"><b>Attendance &mdash; out sick only</b> &mdash; pick up an after-hours loss when not on call and extra help is needed.</div>
-        <div class="mu-item full100"><b>Van reset</b> &mdash; stay late or come in Saturday to organize the warehouse and/or clean &amp; decontaminate equipment. <span class="r100">&rarr; restores to full ($100)</span></div>
+        <div id="canList"></div>
       </div>
       <div class="makeup-col cantcol">
         <div class="canthead"><span>&#10005;</span> Can&rsquo;t be made up</div>
-        <div class="mu-item"><b>Attendance &mdash; no-call/no-show</b> &mdash; leaves the team short with no notice; can&rsquo;t be recovered.</div>
-        <div class="mu-item"><b>Jobsite documentation</b> &mdash; photos, readings, notes, signed forms must be captured on site; it&rsquo;s imperative to substantiate invoices.</div>
-        <div class="mu-item"><b>Estimate / invoice turnaround</b> &mdash; same-day estimates and 24-hour invoices; the timing is the value.</div>
-        <div class="mu-item"><b>80% estimate conversion</b> &mdash; a monthly threshold; it&rsquo;s met or it isn&rsquo;t.</div>
-        <div class="mu-item"><b>Collections minimum</b> &mdash; the monthly target must be met; no makeup.</div>
-        <div class="mu-item"><b>15 Reviews/mo</b> &mdash; a monthly target; either it&rsquo;s achieved or it isn&rsquo;t.</div>
+        <div id="cantList"></div>
       </div>
     </div>
     <p style="font-size:12px;color:var(--mid);margin-top:12px;font-style:italic;">A successful makeup restores the metric to Partial ($50) &mdash; it credits the recovery while keeping a clean, first-time Met ($100) meaningful. The Van Reset is the one exception: a full Saturday of warehouse organization / equipment decontamination restores the full $100, reflecting the real extra effort. Makeups are confirmed by management.</p>
@@ -276,7 +266,24 @@ const ROLE_SETS = {
     {name:"10 Drop-offs/week", type:"build", band:"tiered"},
     {name:"80% Estimates Converted", type:"build", band:"binary"},
   ]},
+  senior_tech: { label:"Senior Tech", cls:"lead", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"EOD Sent by 6pm", type:"build", band:"tiered"},
+    {name:"Van Clean + Reset", type:"clean", band:"tiered"},
+    {name:"15 Reviews/mo", type:"build", band:"binary"},
+  ]},
+  pm_senior: { label:"Senior PM / PM", cls:"lead", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"Estimate (same day) + Invoice (24h)", type:"build", band:"tiered"},
+    {name:"Van Clean + Reset", type:"clean", band:"tiered"},
+    {name:"15 Reviews/mo", type:"build", band:"binary"},
+  ]},
 };
+// Display order + accent color per role group (4 groups now: added Senior Tech + Senior PM/PM)
+const GROUPS = ["tech","senior_tech","pm_senior","office"];
+const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", office:"var(--slate)" };
 
 const DEFAULT_STATE = {
   period:"March 2026", week:2,
@@ -306,6 +313,8 @@ const DEFAULT_LABELS = {
   tech:   ["Attendance","Jobsite Docs","EOD by 6pm","No Reworks","Water Tags"],
   lead:   ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","Est. same-day / Inv. 24h"],
   office: ["Attendance","4 Breakfasts/mo","$260k Collections","10 Drop-offs/wk","80% Conversion"],
+  senior_tech: ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","15 Reviews/mo"],
+  pm_senior: ["Attendance","Jobsite Docs","Est. Same-Day / Inv. 24h","Van Reset","15 Reviews/mo"],
 };
 
 const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
@@ -313,6 +322,75 @@ const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail
 const LOCATION_LINKS = { "carbondale-417":"carbondale", "gypsum-315":"gypsum" };
 let viewLoc = "carbondale";   // which location's board is currently shown
 let lockedLoc = false;        // true = dedicated team link or signed-in manager (no toggle)
+
+/* ===== "MAKING IT RIGHT" makeup rules (Phase 2) =====
+   One rule per distinct metric label. can: "no" | "partial" ($50) | "full" ($100).
+   Editable online; the section below the board rebuilds itself from these. */
+const DEFAULT_MAKEUP = {
+  "Attendance":               {can:"no",      note:"A reliability standard — a no-call/no-show leaves the team short and can’t be recovered."},
+  "Jobsite Docs":             {can:"no",      note:"Photos, readings, notes, and signed forms must be captured on site to substantiate invoices."},
+  "EOD by 6pm":               {can:"partial", note:"Submit a complete EOD by the next morning."},
+  "No Reworks":               {can:"partial", note:"Correct the issue promptly and document the fix."},
+  "Water Tags":               {can:"partial", note:"Tag upcoming eligible jobs to catch up."},
+  "Van Reset":                {can:"full",    note:"Stay late or come in Saturday to organize the warehouse and/or clean & decontaminate equipment."},
+  "Est. same-day / Inv. 24h": {can:"no",      note:"Same-day estimates and 24-hour invoices — the timing is the value."},
+  "4 Breakfasts/mo":          {can:"partial", note:"Secure additional breakfasts to make up the difference."},
+  "$260k Collections":        {can:"no",      note:"The monthly target must be met; no makeup."},
+  "10 Drop-offs/wk":          {can:"partial", note:"Schedule additional drop-offs to make up the difference."},
+  "80% Conversion":           {can:"no",      note:"A monthly threshold — it’s met or it isn’t."},
+  "15 Reviews/mo":            {can:"no",      note:"A monthly target; either it’s achieved or it isn’t."},
+  "Jobsite Docu":             {can:"no",      note:"Photos, readings, notes, and signed forms must be captured on site to substantiate invoices."},
+  "Est. Same-Day / Inv. 24h": {can:"no",      note:"Same-day estimates and 24-hour invoices — the timing is the value."},
+  "80% Est. Conversions":     {can:"no",      note:"A monthly threshold — it’s met or it isn’t."},
+};
+function distinctLabels(){
+  const out=[];
+  GROUPS.forEach(g=>{
+    ((state.labels&&state.labels[g])||[]).forEach(l=>{ if(l && out.indexOf(l)<0) out.push(l); });
+  });
+  return out;
+}
+function ensureMakeup(){
+  if(!state.makeup) state.makeup={};
+  distinctLabels().forEach(l=>{
+    if(!state.makeup[l]) state.makeup[l] = DEFAULT_MAKEUP[l] ? {can:DEFAULT_MAKEUP[l].can, note:DEFAULT_MAKEUP[l].note} : {can:"no", note:""};
+  });
+}
+function renderMakeup(){
+  const canEl=document.getElementById('canList'), cantEl=document.getElementById('cantList');
+  if(!canEl||!cantEl) return;
+  ensureMakeup();
+  let canH="", cantH="";
+  distinctLabels().forEach(l=>{
+    const m=state.makeup[l]||{can:"no",note:""};
+    const note=m.note?` &mdash; ${esc(m.note)}`:"";
+    if(m.can==="full") canH+=`<div class="mu-item full100"><b>${esc(l)}</b>${note} <span class="r100">&rarr; restores to full ($100)</span></div>`;
+    else if(m.can==="partial") canH+=`<div class="mu-item"><b>${esc(l)}</b>${note}</div>`;
+    else cantH+=`<div class="mu-item"><b>${esc(l)}</b>${note}</div>`;
+  });
+  canEl.innerHTML = canH || '<div class="mu-item" style="font-style:italic;color:var(--mid);">Nothing here yet.</div>';
+  cantEl.innerHTML = cantH || '<div class="mu-item" style="font-style:italic;color:var(--mid);">Nothing here yet.</div>';
+}
+function buildMakeupEditor(wrap){
+  ensureMakeup();
+  const block=document.createElement('div'); block.className="setblock";
+  let h=`<h3>&#128296; &ldquo;Making It Right&rdquo; rules &mdash; one per metric</h3>
+    <p class="hint" style="margin-top:0;margin-bottom:8px;">For each metric, pick whether a miss can be made up and write the short note shown on the board. This rebuilds the &ldquo;Making It Right&rdquo; section automatically.</p>
+    <table class="editor"><tr><th class="name-col">Metric</th><th style="min-width:160px;">Can it be made up?</th><th>Note shown on the board</th></tr>`;
+  distinctLabels().forEach(l=>{
+    const m=state.makeup[l]||{can:"no",note:""};
+    h+=`<tr><td class="name-col">${esc(l)}</td>
+      <td><select class="mk-can" data-mk="${esc(l)}">
+        <option value="no"${m.can==="no"?" selected":""}>No — can’t be made up</option>
+        <option value="partial"${m.can==="partial"?" selected":""}>Yes — back to $50</option>
+        <option value="full"${m.can==="full"?" selected":""}>Yes — back to $100</option>
+      </select></td>
+      <td><input class="txt mk-note" data-mk="${esc(l)}" value="${esc(m.note||"")}" placeholder="short explanation"></td></tr>`;
+  });
+  h+='</table>';
+  block.innerHTML=h;
+  wrap.appendChild(block);
+}
 // column width percentages: [name, m1, m2, m3, m4, m5, potential] — must sum to 100
 const DEFAULT_WIDTHS = [17,12,12,12,12,12,23];
 
@@ -341,9 +419,10 @@ async function loadState(){
 function migrate(){
   // additive only — never touches existing people/scores
   if(!state.labels) state.labels = JSON.parse(JSON.stringify(DEFAULT_LABELS));
-  ["tech","lead","office"].forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
+  GROUPS.forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
   (state.people||[]).forEach(p=>{ if(!p.location) p.location="carbondale"; }); // additive default
   if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
+  ensureMakeup(); // additive: seed makeup rules for any metric that lacks one
 }
 async function persist(){
   // always keep a local cache; also write to cloud when in cloud editor mode
@@ -427,11 +506,11 @@ function render(){
 
   // role sections
   const rs=document.getElementById('roleSections'); rs.innerHTML="";
-  ["tech","lead","office"].forEach(gk=>{
+  GROUPS.forEach(gk=>{
     const set=ROLE_SETS[gk]; const members=data.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
     if(!members.length) return;
     const sec=document.createElement('div'); sec.className="rolesec";
-    const roleColor = gk==="tech"?"var(--lteal)":gk==="lead"?"var(--mid)":"var(--teal)";
+    const roleColor = ROLE_COLORS[gk]||"var(--teal)";
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
     set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(state.labels[gk][i])}</th>`);
@@ -445,6 +524,7 @@ function render(){
     });
     html+='</table>'; sec.innerHTML=html; rs.appendChild(sec);
   });
+  renderMakeup();
 }
 function shortName(n){ // shorten long metric labels for column headers
   return n.replace("Attendance & Punctuality","Attendance").replace("Jobsite Documentation","Jobsite Docs")
@@ -488,7 +568,7 @@ function openEdit(){ editing=true;
 }
 function buildEditor(){
   const wrap=document.getElementById('editSets'); wrap.innerHTML="";
-  ["tech","lead","office"].forEach(gk=>{
+  GROUPS.forEach(gk=>{
     const set=ROLE_SETS[gk];
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
@@ -523,6 +603,7 @@ function buildEditor(){
     block.appendChild(addBtn);
     wrap.appendChild(block);
   });
+  buildMakeupEditor(wrap);
 }
 function recolor(sel){ sel.className = sel.value==="IP"?"sNA":sel.value==="100"?"s100":sel.value==="50"?"s50":"s0"; }
 function collectEdits(){
@@ -541,6 +622,13 @@ function collectEdits(){
   });
   document.querySelectorAll('#editSets select[data-s]').forEach(sel=>{
     const v=sel.value; state.people[Number(sel.dataset.i)].scores[Number(sel.dataset.s)] = v==="IP"?"IP":v==="50"?"P":Number(v);
+  });
+  if(!state.makeup) state.makeup={};
+  document.querySelectorAll('#editSets .mk-can').forEach(sel=>{
+    const l=sel.dataset.mk; if(!state.makeup[l]) state.makeup[l]={can:"no",note:""}; state.makeup[l].can=sel.value;
+  });
+  document.querySelectorAll('#editSets .mk-note').forEach(inp=>{
+    const l=inp.dataset.mk; if(!state.makeup[l]) state.makeup[l]={can:"no",note:""}; state.makeup[l].note=inp.value;
   });
 }
 function saveAndView(){ collectEdits(); persist(); editing=false;
