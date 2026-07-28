@@ -128,6 +128,14 @@
   .editor th.lbl-edit input::placeholder{color:rgba(255,255,255,.7);}
   .edit-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
   .hint{font-size:12px;color:var(--mid);margin-top:6px;}
+  .btn-log{background:var(--mid);color:#fff;font-size:11px;font-weight:bold;padding:5px 9px;border-radius:6px;white-space:nowrap;}
+  tr.logrow td{background:var(--hdrfill);}
+  .logitem{background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12.5px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .btn-logdel{background:none;color:var(--red);font-size:14px;padding:2px 6px;border:none;line-height:1;}
+  .logadd{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+  .logadd input[type=text]{flex:1;min-width:120px;}
+  .logadd input,.logadd select{font-family:inherit;font-size:12px;padding:6px 7px;border:1px solid var(--line);border-radius:6px;}
+  .btn-logadd{background:var(--green);color:#fff;font-size:12px;font-weight:bold;padding:7px 14px;border-radius:6px;}
   .hidden{display:none;}
   @media print{ .toolbar,#editView{display:none;} }
 </style>
@@ -330,6 +338,9 @@ const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail
 const LOCATION_LINKS = { "carbondale-417":"carbondale", "gypsum-315":"gypsum" };
 let viewLoc = "carbondale";   // which location's board is currently shown
 let lockedLoc = false;        // true = dedicated team link or signed-in manager (no toggle)
+let pendingIdSave = false;    // set when new person IDs are minted, so they get saved once
+let incidentsByPerson = {};   // personId -> array of private incident-log rows (editor-only)
+let expandedLog = null;       // which person's log panel is open in the editor
 
 /* ===== "MAKING IT RIGHT" makeup rules (Phase 2) =====
    One rule per distinct metric label. can: "no" | "partial" ($50) | "full" ($100).
@@ -401,6 +412,66 @@ function buildMakeupEditor(wrap){
   block.innerHTML=h;
   wrap.appendChild(block);
 }
+
+/* ===== PRIVATE INCIDENT LOG (Phase 3a) =====
+   Dated notes per person, stored in a protected Supabase table `incident_log`
+   that the public CANNOT read (RLS: owner or matching-location manager only). */
+function genId(){ try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return 'p-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e9).toString(36); }
+function fmtDate(d){ if(!d) return '(no date)'; const p=String(d).split('-'); if(p.length<3) return String(d);
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1])-1]||p[1]; return mo+' '+Number(p[2]); }
+async function loadIncidents(){
+  incidentsByPerson = {};
+  if(!CLOUD || userScope==='viewer') return; // only signed-in editors can read the log
+  try{
+    const { data, error } = await sb.from('incident_log').select('*').order('entry_date',{ascending:false}).order('id',{ascending:false});
+    if(error) throw error;
+    (data||[]).forEach(r=>{ (incidentsByPerson[r.person_id]=incidentsByPerson[r.person_id]||[]).push(r); });
+  }catch(e){ console.warn('Incident log load failed (is the incident_log table created in Supabase?):', e); }
+}
+function logPanelHtml(p){
+  const entries=(incidentsByPerson[p.id]||[]);
+  const list = entries.length
+    ? entries.map(r=>`<div class="logitem"><span><b>${esc(fmtDate(r.entry_date))}</b>${r.metric?` &middot; ${esc(r.metric)}`:''} &middot; ${esc(r.note)}</span><button type="button" class="btn-logdel" title="Delete" onclick="deleteIncident('${p.id}',${Number(r.id)})">&#10005;</button></div>`).join('')
+    : '<div style="font-size:12px;color:var(--mid);font-style:italic;margin-bottom:6px;">No entries yet.</div>';
+  const opts=(state.labels[p.group]||[]).map(l=>`<option>${esc(l)}</option>`).join('');
+  return `<tr class="logrow"><td colspan="20" style="padding:12px;">
+    <div style="font-weight:bold;color:var(--teal);margin-bottom:8px;">${esc(p.name)} &mdash; incident log <span style="font-weight:normal;color:var(--mid);font-size:12px;">(private &mdash; never shown on the board)</span></div>
+    ${list}
+    <div class="logadd">
+      <input type="date" id="logdate_${p.id}" title="Date of the incident">
+      <select id="logmetric_${p.id}"><option value="">(metric &mdash; optional)</option>${opts}</select>
+      <input type="text" id="lognote_${p.id}" placeholder="what happened…">
+      <button type="button" class="btn-logadd" onclick="submitIncident('${p.id}')">&#43; Add</button>
+    </div></td></tr>`;
+}
+function toggleLog(pid){ collectEdits(); expandedLog=(expandedLog===pid?null:pid); buildEditor(); }
+function submitIncident(pid){
+  const p=state.people.find(x=>x.id===pid); if(!p) return;
+  const date=document.getElementById('logdate_'+pid).value;
+  const metric=document.getElementById('logmetric_'+pid).value;
+  const note=(document.getElementById('lognote_'+pid).value||'').trim();
+  if(!note){ alert('Add a short note (what happened).'); return; }
+  addIncident(p, date, metric, note);
+}
+async function addIncident(p, date, metric, note){
+  if(!CLOUD){ alert('The incident log needs the online board — sign in on the hosted site.'); return; }
+  try{
+    const { data, error } = await sb.from('incident_log').insert({ person_id:p.id, location:p.location, entry_date:date||null, metric:metric||null, note }).select().single();
+    if(error) throw error;
+    (incidentsByPerson[p.id]=incidentsByPerson[p.id]||[]).unshift(data);
+    collectEdits(); buildEditor();
+  }catch(e){ alert('Could not save the log entry. You may not have edit rights for this person, or the log table isn’t set up yet.\n\n'+e.message); }
+}
+async function deleteIncident(pid, noteId){
+  if(!confirm('Delete this log entry?')) return;
+  try{
+    const { error } = await sb.from('incident_log').delete().eq('id', noteId);
+    if(error) throw error;
+    incidentsByPerson[pid]=(incidentsByPerson[pid]||[]).filter(r=>Number(r.id)!==Number(noteId));
+    collectEdits(); buildEditor();
+  }catch(e){ alert('Could not delete: '+e.message); }
+}
 // column width percentages: [name, m1, m2, m3, m4, m5, potential] — must sum to 100
 const DEFAULT_WIDTHS = [17,12,12,12,12,12,23];
 
@@ -431,6 +502,7 @@ function migrate(){
   if(!state.labels) state.labels = JSON.parse(JSON.stringify(DEFAULT_LABELS));
   GROUPS.forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
   (state.people||[]).forEach(p=>{ if(!p.location) p.location="carbondale"; }); // additive default
+  (state.people||[]).forEach(p=>{ if(!p.id){ p.id=genId(); pendingIdSave=true; } }); // stable id for incident log
   if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
   ensureMakeup(); // additive: seed makeup rules for any metric that lacks one
 }
@@ -568,12 +640,14 @@ function setViewLoc(k){ viewLoc=k; buildLocToggle(); render(); }
 /* ===== EDIT ===== */
 let editing=false;
 function toggleEdit(){ editing?saveAndView():openEdit(); }
-function openEdit(){ editing=true;
+async function openEdit(){ editing=true;
   document.getElementById('displayView').classList.add('hidden');
   document.getElementById('editView').classList.remove('hidden');
   const b=document.getElementById('toggleBtn'); b.textContent="\u2713 Save & View"; b.className="btn-save";
   document.getElementById('periodInput').value=state.period;
   document.getElementById('weekInput').value=state.week;
+  buildEditor();
+  await loadIncidents();
   buildEditor();
 }
 function buildEditor(){
@@ -583,7 +657,7 @@ function buildEditor(){
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
     set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(state.labels[gk][mi])}" placeholder="Metric ${mi+1}"><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" \u00b7 hit/miss":""}</span></th>`);
-    h+='<th>Streak</th><th>Last mo.$</th><th></th></tr>';
+    h+='<th>Streak</th><th>Last mo.$</th><th></th><th>Log</th></tr>';
     state.people.forEach((p,pi)=>{ if(p.group!==gk) return;
       const editable = canEdit(p); const dis = editable ? "" : " disabled";
       const lockNote = editable ? "" : ` title="${esc(LOCATIONS[p.location]||p.location)} — outside your edit access"`;
@@ -603,7 +677,9 @@ function buildEditor(){
       });
       h+=`<td><input class="num" data-f="goldStreak" data-i="${pi}" type="number" min="0" value="${Number(p.goldStreak)||0}"${dis}></td>
           <td><input class="num" data-f="lastMonthTotal" data-i="${pi}" type="number" min="0" step="50" value="${Number(p.lastMonthTotal)||0}"${dis}></td>
-          <td>${editable?`<button class="btn-del" onclick="removePerson(${pi})">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td></tr>`;
+          <td>${editable?`<button class="btn-del" onclick="removePerson(${pi})">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
+          <td>${editable?`<button type="button" class="btn-log" onclick="toggleLog('${p.id}')">&#128221; Log (${(incidentsByPerson[p.id]||[]).length})</button>`:''}</td></tr>`;
+      if(editable && expandedLog===p.id) h+=logPanelHtml(p);
     });
     h+='</table>';
     block.innerHTML=h;
@@ -648,7 +724,7 @@ function saveAndView(){ collectEdits(); persist(); editing=false;
 }
 function addPerson(gk){ collectEdits();
   const loc = (userScope==="carbondale"||userScope==="gypsum") ? userScope : "carbondale";
-  state.people.push({name:"New Person",role:"Role",group:gk,location:loc,scores:["IP","IP","IP","IP","IP"],goldStreak:0,lastMonthTotal:0});
+  state.people.push({name:"New Person",role:"Role",group:gk,location:loc,scores:["IP","IP","IP","IP","IP"],goldStreak:0,lastMonthTotal:0,id:genId()});
   persist(); buildEditor();
 }
 function removePerson(i){ collectEdits();
@@ -770,12 +846,13 @@ function resetWidths(){
 (async function init(){
   await refreshScope();
   await loadState();
+  if(pendingIdSave && CLOUD && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; }
   resolveView();
   buildLocToggle();
   updateAuthBar();
   render();
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); render(); });
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } render(); });
   }
 })();
 </script>
