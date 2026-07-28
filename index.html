@@ -280,10 +280,17 @@ const ROLE_SETS = {
     {name:"Van Clean + Reset", type:"clean", band:"tiered"},
     {name:"15 Reviews/mo", type:"build", band:"binary"},
   ]},
+  bdr_sales: { label:"BDR / Sales", cls:"office", metrics:[
+    {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
+    {name:"Jobsite Documentation", type:"build", band:"tiered"},
+    {name:"Secure 4 Breakfasts/mo", type:"build", band:"tiered"},
+    {name:"10 Drop-offs/week", type:"build", band:"tiered"},
+    {name:"16 1:1 Meetings/mo", type:"build", band:"tiered"},
+  ]},
 };
-// Display order + accent color per role group (4 groups now: added Senior Tech + Senior PM/PM)
-const GROUPS = ["tech","senior_tech","pm_senior","office"];
-const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", office:"var(--slate)" };
+// Display order + accent color per role group (5 groups: added BDR/Sales above Office)
+const GROUPS = ["tech","senior_tech","pm_senior","bdr_sales","office"];
+const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", bdr_sales:"var(--green)", office:"var(--slate)" };
 
 const DEFAULT_STATE = {
   period:"March 2026", week:2,
@@ -315,6 +322,7 @@ const DEFAULT_LABELS = {
   office: ["Attendance","4 Breakfasts/mo","$260k Collections","10 Drop-offs/wk","80% Conversion"],
   senior_tech: ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","15 Reviews/mo"],
   pm_senior: ["Attendance","Jobsite Docs","Est. Same-Day / Inv. 24h","Van Reset","15 Reviews/mo"],
+  bdr_sales: ["Attendance","Jobsite Docu","4 Breakfasts","10 Drop-offs/wk","16 1:1 Meetings/mo"],
 };
 
 const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
@@ -342,6 +350,8 @@ const DEFAULT_MAKEUP = {
   "Jobsite Docu":             {can:"no",      note:"Photos, readings, notes, and signed forms must be captured on site to substantiate invoices."},
   "Est. Same-Day / Inv. 24h": {can:"no",      note:"Same-day estimates and 24-hour invoices — the timing is the value."},
   "80% Est. Conversions":     {can:"no",      note:"A monthly threshold — it’s met or it isn’t."},
+  "4 Breakfasts":             {can:"partial", note:"Secure additional breakfasts to make up the difference."},
+  "16 1:1 Meetings/mo":       {can:"partial", note:"Schedule additional 1:1 meetings to catch up."},
 };
 function distinctLabels(){
   const out=[];
