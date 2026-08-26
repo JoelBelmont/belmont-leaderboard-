@@ -288,17 +288,24 @@ const ROLE_SETS = {
     {name:"Van Clean + Reset", type:"clean", band:"tiered"},
     {name:"15 Reviews/mo", type:"build", band:"binary"},
   ]},
-  bdr_sales: { label:"BDR / Sales", cls:"office", metrics:[
+  bdr_sales: { label:"BDR/PM", cls:"office", metrics:[   /* internal key stays bdr_sales; now displayed as BDR/PM */
     {name:"Attendance & Punctuality", type:"clean", band:"tiered"},
     {name:"Jobsite Documentation", type:"build", band:"tiered"},
     {name:"Secure 4 Breakfasts/mo", type:"build", band:"tiered"},
     {name:"10 Drop-offs/week", type:"build", band:"tiered"},
     {name:"16 1:1 Meetings/mo", type:"build", band:"tiered"},
   ]},
+  bdr: { label:"BDR", cls:"office", metrics:[
+    {name:"10 Partner Meetings/wk", type:"build", band:"tiered"},
+    {name:"40 Drop-offs/wk", type:"build", band:"tiered"},
+    {name:"3 Social Posts/wk", type:"build", band:"tiered"},
+    {name:"10 New Prospects/wk", type:"build", band:"tiered"},
+    {name:"CRM Logged by 6pm", type:"build", band:"tiered"},
+  ]},
 };
-// Display order + accent color per role group (5 groups: added BDR/Sales above Office)
-const GROUPS = ["tech","senior_tech","pm_senior","bdr_sales","office"];
-const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", bdr_sales:"#5E6A72", office:"var(--slate)" };
+// Display order + accent color per role group (6 groups: BDR/Sales renamed to BDR/PM, new BDR added before Office)
+const GROUPS = ["tech","senior_tech","pm_senior","bdr_sales","bdr","office"];
+const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", bdr_sales:"#5E6A72", bdr:"#4A6D8C", office:"var(--slate)" };
 
 const DEFAULT_STATE = {
   period:"March 2026", week:2,
@@ -331,6 +338,7 @@ const DEFAULT_LABELS = {
   senior_tech: ["Attendance","Jobsite Docs","EOD by 6pm","Van Reset","15 Reviews/mo"],
   pm_senior: ["Attendance","Jobsite Docs","Est. Same-Day / Inv. 24h","Van Reset","15 Reviews/mo"],
   bdr_sales: ["Attendance","Jobsite Docu","4 Breakfasts","10 Drop-offs/wk","16 1:1 Meetings/mo"],
+  bdr: ["10 Meetings/wk","40 Drop-offs/wk","3 Social Media Posts/wk","10 New Prospects/wk","CRM logged by 6pm"],
 };
 
 const LOCATIONS = { carbondale:"Carbondale (Roaring Fork)", gypsum:"Gypsum (Vail Valley)" };
@@ -363,11 +371,19 @@ const DEFAULT_MAKEUP = {
   "80% Est. Conversions":     {can:"no",      note:"A monthly threshold — it’s met or it isn’t."},
   "4 Breakfasts":             {can:"partial", note:"Secure additional breakfasts to make up the difference."},
   "16 1:1 Meetings/mo":       {can:"partial", note:"Schedule additional 1:1 meetings to catch up."},
+  "10 Meetings/wk":           {can:"partial", note:"Schedule additional partner meetings to catch up."},
+  "40 Drop-offs/wk":          {can:"partial", note:"Make additional pop-by visits to catch up."},
+  "3 Social Media Posts/wk":  {can:"partial", note:"Post the missed updates to catch up."},
+  "10 New Prospects/wk":      {can:"partial", note:"Add more prospects to the pipeline to catch up."},
+  "CRM logged by 6pm":        {can:"partial", note:"Log any missed entries by the next morning."},
 };
 function distinctLabels(){
-  const out=[];
+  const out=[], seen=[];
   GROUPS.forEach(g=>{
-    ((state.labels&&state.labels[g])||[]).forEach(l=>{ if(l && out.indexOf(l)<0) out.push(l); });
+    ((state.labels&&state.labels[g])||[]).forEach(raw=>{
+      const l=String(raw||"").trim().replace(/\s+/g,' ');            // ignore stray/double spaces
+      if(l){ const k=l.toLowerCase(); if(seen.indexOf(k)<0){ seen.push(k); out.push(l); } } // and case
+    });
   });
   return out;
 }
@@ -697,7 +713,7 @@ function collectEdits(){
   state.week=Number(document.getElementById('weekInput').value)||1;
   document.querySelectorAll('#editSets input[data-lbl-g]').forEach(inp=>{
     const g=inp.dataset.lblG, i=Number(inp.dataset.lblI);
-    state.labels[g][i] = inp.value || DEFAULT_LABELS[g][i];
+    state.labels[g][i] = (inp.value || DEFAULT_LABELS[g][i]).trim();
   });
   document.querySelectorAll('#editSets input[data-f]').forEach(inp=>{
     const i=Number(inp.dataset.i),f=inp.dataset.f;
