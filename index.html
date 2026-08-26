@@ -371,11 +371,11 @@ const DEFAULT_MAKEUP = {
   "80% Est. Conversions":     {can:"no",      note:"A monthly threshold — it’s met or it isn’t."},
   "4 Breakfasts":             {can:"partial", note:"Secure additional breakfasts to make up the difference."},
   "16 1:1 Meetings/mo":       {can:"partial", note:"Schedule additional 1:1 meetings to catch up."},
-  "10 Meetings/wk":           {can:"partial", note:"Schedule additional partner meetings to catch up."},
-  "40 Drop-offs/wk":          {can:"partial", note:"Make additional pop-by visits to catch up."},
-  "3 Social Media Posts/wk":  {can:"partial", note:"Post the missed updates to catch up."},
-  "10 New Prospects/wk":      {can:"partial", note:"Add more prospects to the pipeline to catch up."},
-  "CRM logged by 6pm":        {can:"partial", note:"Log any missed entries by the next morning."},
+  "10 Meetings/wk":           {can:"no", note:"A weekly target — hit it or it's missed."},
+  "40 Drop-offs/wk":          {can:"no", note:"A weekly target — the face-time can't be recovered later."},
+  "3 Social Media Posts/wk":  {can:"no", note:"A weekly cadence — posted on time or missed."},
+  "10 New Prospects/wk":      {can:"no", note:"A weekly target — pipeline growth is met or it isn't."},
+  "CRM logged by 6pm":        {can:"no", note:"Same-day logging is the value — done by 6pm or it's missed."},
 };
 function distinctLabels(){
   const out=[], seen=[];
@@ -521,6 +521,20 @@ function migrate(){
   (state.people||[]).forEach(p=>{ if(!p.id){ p.id=genId(); pendingIdSave=true; } }); // stable id for incident log
   if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
   ensureMakeup(); // additive: seed makeup rules for any metric that lacks one
+  // one-time: the 5 BDR weekly targets were auto-seeded as "partial" with placeholder notes;
+  // correct them to "can't be made up". Only touches the untouched placeholder — never a customized rule.
+  const bdrPlaceholders={
+    "10 Meetings/wk":"Schedule additional partner meetings to catch up.",
+    "40 Drop-offs/wk":"Make additional pop-by visits to catch up.",
+    "3 Social Media Posts/wk":"Post the missed updates to catch up.",
+    "10 New Prospects/wk":"Add more prospects to the pipeline to catch up.",
+    "CRM logged by 6pm":"Log any missed entries by the next morning."
+  };
+  Object.keys(bdrPlaceholders).forEach(l=>{
+    if(state.makeup[l] && state.makeup[l].note===bdrPlaceholders[l] && DEFAULT_MAKEUP[l]){
+      state.makeup[l]={can:DEFAULT_MAKEUP[l].can, note:DEFAULT_MAKEUP[l].note};
+    }
+  });
 }
 async function persist(){
   // always keep a local cache; also write to cloud when in cloud editor mode
