@@ -99,6 +99,11 @@
   .d100{background:var(--green);} .d50{background:var(--amber);} .d0{background:#cfc8b8;}
   .dprog{background:#fff;border:2px solid var(--lteal);} /* in-progress open dot */
   .tot{font-weight:bold;color:var(--teal);white-space:nowrap;}
+  table.scores.teamtot{margin-top:0;margin-bottom:2px;}
+  table.scores.teamtot td{background:var(--goldlt);border-top:2px solid var(--gold);border-bottom:none;
+                          padding:11px 9px;font-size:14.5px;font-weight:bold;color:var(--teal);}
+  table.scores.teamtot .cnt{font-weight:normal;color:var(--mid);font-size:12.5px;}
+  table.scores.teamtot .of{font-weight:normal;color:var(--mid);}
   .legend{display:flex;gap:16px;align-items:center;justify-content:center;margin-top:14px;font-size:12.5px;color:var(--slate);flex-wrap:wrap;}
   .legend span{display:flex;align-items:center;gap:6px;}
   .legend .sep{width:1px;height:16px;background:var(--line);}
@@ -868,6 +873,18 @@ function render(){
     });
     html+='</table>'; sec.innerHTML=html; rs.appendChild(sec);
   });
+
+  // team-wide total, aligned under the Current Potential column
+  if(data.length){
+    const teamEarned = data.reduce((a,p)=>a+p.total, 0);
+    const teamMax    = data.length * 500;
+    const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
+    const tt = document.createElement('div'); tt.className="rolesec";
+    tt.innerHTML = `<table class="scores teamtot"><colgroup>${cg}</colgroup>
+      <tr><td colspan="6">Team Total &mdash; ${esc(LOCATIONS[viewLoc]||"")} <span class="cnt">&middot; ${data.length} ${data.length===1?"person":"people"}</span></td>
+          <td class="c tot">${fmt(teamEarned)} <span class="of">/ ${fmt(teamMax)}</span></td></tr></table>`;
+    rs.appendChild(tt);
+  }
   renderMakeup(M);
 }
 function shortName(n){ // shorten long metric labels for column headers
