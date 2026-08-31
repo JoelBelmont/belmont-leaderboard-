@@ -16,6 +16,18 @@
   .head h1{color:var(--teal);font-size:36px;letter-spacing:.5px;}
   .head .sub{color:var(--gold);font-size:21px;font-weight:bold;margin-top:4px;}
   .head .period{color:var(--slate);font-size:17px;margin-top:7px;}
+  .monthnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .monthnav .mlabel{font-size:21px;font-weight:bold;color:var(--teal);min-width:190px;}
+  .marrow{background:#fff;color:var(--teal);border:1.5px solid var(--mid);border-radius:8px;font-size:19px;line-height:1;padding:5px 14px;}
+  .marrow:disabled{opacity:.35;cursor:default;border-color:var(--line);color:var(--line);}
+  .mtag{font-size:11.5px;font-weight:bold;padding:4px 11px;border-radius:20px;letter-spacing:.3px;}
+  .mtag.live{background:#e7f1ea;color:var(--green);}
+  .mtag.past{background:var(--hdrfill);color:var(--mid);}
+  .mtag.draft{background:var(--goldlt);color:var(--gold);}
+  .mnudge{max-width:820px;margin:12px auto 0;font-size:13.5px;color:var(--slate);background:var(--goldlt);border:1px solid var(--gold);border-radius:9px;padding:10px 15px;}
+  .editctx{max-width:1540px;margin:0 auto 16px;font-size:13.5px;background:var(--hdrfill);border:1px solid var(--mid);border-radius:9px;padding:10px 15px;color:var(--teal);}
+  .editctx.locked{background:#f6ecea;border-color:var(--red);color:var(--red);}
+  .calc{font-size:13px;color:var(--mid);font-weight:bold;}
   .wkwrap{max-width:520px;margin:12px auto 0;}
   .wklabel{font-size:13px;color:var(--mid);margin-bottom:5px;text-align:center;}
   .wkbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;}
@@ -147,7 +159,8 @@
   <h1>Belmont Reliability Leaderboard</h1>
   <div class="sub">Reliability Premium &mdash; Celebrating Who Shows Up</div>
   <div class="locbanner" id="locbanner"></div>
-  <div class="period" id="period"></div>
+  <div class="monthnav" id="monthnav"></div>
+  <div class="mnudge" id="monthnudge" style="display:none;"></div>
   <div class="wkwrap" id="wkwrap">
     <div class="wklabel" id="wklabel"></div>
     <div class="wkbar"><div class="wkfill" id="wkfill"></div></div>
@@ -222,13 +235,14 @@
 <!-- ============ EDIT ============ -->
 <div id="editView" class="hidden">
   <div class="edit-intro">
-    <b>How to update (weekly is ideal):</b> Set the <b>month</b> and <b>which week</b> you&rsquo;re in. For each person, set each metric to
+    <b>How to update (weekly is ideal):</b> Use the <b>&#8249; &#8250; arrows</b> at the top to pick the month, then set <b>which week</b> you&rsquo;re in. Metric names and the &ldquo;Making It Right&rdquo; rules belong to the month you are viewing &mdash; changing them here never touches a past month. For each person, set each metric to
     <b>In progress</b> (still earning / clean so far), <b>Met</b>, <b>Partial</b>, or <b>Missed</b>. Leave &ldquo;building&rdquo; metrics on <b>In progress</b> until earned;
     leave &ldquo;clean-record&rdquo; metrics on <b>In progress</b> too &mdash; they only change if something happens. <b>Streak</b> = consecutive perfect $500 months. <b>Last mo. $</b> feeds &ldquo;Most Improved.&rdquo;
     Click <b>Save &amp; View</b> when done. Saves to this computer automatically.
   </div>
+  <div class="editctx" id="editctx"></div>
   <div style="margin-bottom:14px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
-    <span><label style="font-weight:bold;color:var(--teal);">Month: </label>
+    <span><label style="font-weight:bold;color:var(--teal);">Month label: </label>
       <input class="txt" id="periodInput" style="width:170px;display:inline-block;" placeholder="e.g. March 2026"></span>
     <span><label style="font-weight:bold;color:var(--teal);">Week: </label>
       <select id="weekInput" style="padding:7px;border-radius:6px;border:1px solid var(--line);">
@@ -307,17 +321,12 @@ const ROLE_SETS = {
 const GROUPS = ["tech","senior_tech","pm_senior","bdr_sales","bdr","office"];
 const ROLE_COLORS = { tech:"var(--lteal)", senior_tech:"var(--mid)", pm_senior:"var(--teal)", bdr_sales:"#5E6A72", bdr:"#4A6D8C", office:"var(--slate)" };
 
-const DEFAULT_STATE = {
-  period:"March 2026", week:2,
-  people:[
-    {name:"Alex R.",   role:"Project Manager", group:"lead",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:3, lastMonthTotal:500},
-    {name:"Jordan M.", role:"Project Manager", group:"lead",   location:"gypsum",     scores:[100,100,"P",100,100], goldStreak:1, lastMonthTotal:450},
-    {name:"Sam T.",    role:"Senior Tech",     group:"tech",   location:"carbondale", scores:[100,100,100,100,100], goldStreak:2, lastMonthTotal:400},
-    {name:"Casey L.",  role:"Technician",      group:"tech",   location:"gypsum",     scores:[100,"P",100,100,"IP"], goldStreak:0, lastMonthTotal:300},
-    {name:"Morgan D.", role:"Technician",      group:"tech",   location:"carbondale", scores:[100,100,"IP",0,"IP"],  goldStreak:0, lastMonthTotal:200},
-    {name:"Riley P.",  role:"Office Manager",  group:"office", location:"gypsum",     scores:[100,100,100,"P",100],  goldStreak:2, lastMonthTotal:450},
-  ]
-};
+/* Schema 2. The board is a ROSTER plus a map of MONTHS; each month owns its own
+   scores, metric labels and makeup rules, so history never gets overwritten.
+   state = { schema, people:[{id,name,role,group,location,seedStreak}],
+             months:{ "YYYY-MM": {label, week, labels, makeup, scores:{personId:[5]}} },
+             current:"YYYY-MM", colWidths:[7] }                                   */
+const DEFAULT_STATE = { schema:2, people:[], months:{}, current:null, colWidths:[17,12,12,12,12,12,23] };
 /* score cell values: 100, 50 (use "P"), 0, or "IP" (in progress) */
 const STORAGE_KEY="belmont_reliability_v2";
 
@@ -377,29 +386,217 @@ const DEFAULT_MAKEUP = {
   "10 New Prospects/wk":      {can:"no", note:"A weekly target — pipeline growth is met or it isn't."},
   "CRM logged by 6pm":        {can:"no", note:"Same-day logging is the value — done by 6pm or it's missed."},
 };
-function distinctLabels(){
+/* ===== MONTHS =====
+   One month is on screen at a time (viewMonth). state.current is the LIVE month —
+   the one the team's view-only links land on. Everything else is history or a draft. */
+const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
+let viewMonth = null;
+
+function mkKey(y,mIdx){ return y+"-"+String(mIdx+1).padStart(2,"0"); }
+function keyParts(k){ const p=String(k).split("-"); return {y:Number(p[0]), m:Number(p[1])-1}; }
+function keyLabel(k){ const q=keyParts(k); return (MONTH_NAMES[q.m]||"?")+" "+q.y; }
+function shiftKey(k,d){ const q=keyParts(k), t=q.y*12+q.m+d; return mkKey(Math.floor(t/12), ((t%12)+12)%12); }
+function monthKeys(){ return Object.keys(state.months||{}).sort(); }
+function thisMonthKey(){ const d=new Date(); return mkKey(d.getFullYear(), d.getMonth()); }
+function isComplete(m){ return Number(m && m.week)>=5; }
+function curMonth(){ return (state.months||{})[viewMonth]; }
+
+/* map a legacy free-text period ("August", "March 2026") onto a month key */
+function keyFromLegacyPeriod(s){
+  const now=new Date(), txt=String(s||"").trim().toLowerCase();
+  let mIdx=-1;
+  MONTH_NAMES.forEach((n,i)=>{ if(txt.indexOf(n.toLowerCase())>=0) mIdx=i; });
+  if(mIdx<0) return mkKey(now.getFullYear(), now.getMonth());
+  const ym=txt.match(/(20\d{2})/);
+  let y = ym ? Number(ym[1]) : now.getFullYear();
+  if(!ym){ // no year written down — pick the nearest plausible one
+    const nowT=now.getFullYear()*12+now.getMonth();
+    if((y*12+mIdx)-nowT>6) y--;
+    if(nowT-(y*12+mIdx)>6) y++;
+  }
+  return mkKey(y,mIdx);
+}
+
+/* ---- who can see / edit which month ---- */
+function visibleKeys(){
+  const all=monthKeys();
+  if(userScope==="owner") return all;              // owner also sees months built ahead
+  return all.filter(k=>k<=state.current);          // everyone else stops at the live month
+}
+function canEditMonth(k){
+  if(userScope==="viewer") return false;
+  if(userScope==="owner") return true;             // owner can correct any month, past or future
+  return k===state.current && !isComplete(state.months[k]);  // managers: live month, still open
+}
+
+/* ---- reading a month ---- */
+function peopleInMonth(k){
+  const m=state.months[k]; if(!m) return [];
+  return state.people.filter(p=>Array.isArray(m.scores[p.id])).map(p=>Object.assign({},p,{scores:m.scores[p.id]}));
+}
+function perfectIn(k,pid){
+  const m=state.months[k], sc=m&&m.scores[pid];
+  return Array.isArray(sc) && sc.length>0 && sc.every(s=>Number(s)===100);
+}
+function totalIn(k,pid){
+  const m=state.months[k], sc=m&&m.scores[pid];
+  if(!Array.isArray(sc)) return null;
+  let t=0; sc.forEach(s=>t+=cellVal(s)); return t;
+}
+/* Consecutive completed perfect months ending at k. A month still in progress neither
+   counts nor breaks the run — nothing is earned until the period closes. seedStreak
+   carries in months earned before this board existed. */
+function streakAt(k,pid){
+  const keys=monthKeys().filter(x=>x<=k);
+  let run=0, consumedAll=true;
+  for(let i=keys.length-1;i>=0;i--){
+    const kk=keys[i], m=state.months[kk];
+    if(!isComplete(m)){ if(kk===k) continue; consumedAll=false; break; }
+    if(perfectIn(kk,pid)) run++; else { consumedAll=false; break; }
+  }
+  if(consumedAll){ const p=state.people.find(x=>x.id===pid); run += Number(p&&p.seedStreak)||0; }
+  return run;
+}
+function lastTotalBefore(k,pid){
+  const keys=monthKeys().filter(x=>x<k);
+  for(let i=keys.length-1;i>=0;i--){ const t=totalIn(keys[i],pid); if(t!==null) return {total:t, key:keys[i]}; }
+  return null;
+}
+
+/* ---- creating / switching months ---- */
+function createMonth(k){
+  const prior = monthKeys().filter(x=>x<k).pop() || state.current;
+  const src = state.months[prior];
+  const m = { label: keyLabel(k), week: 1,
+              labels: JSON.parse(JSON.stringify(src ? src.labels : DEFAULT_LABELS)),
+              makeup: JSON.parse(JSON.stringify(src ? src.makeup : {})),
+              scores: {} };
+  state.people.forEach(p=>{ m.scores[p.id]=["IP","IP","IP","IP","IP"]; });
+  state.months[k]=m;
+  return m;
+}
+function gotoMonth(k){
+  if(!state.months[k]) return;
+  if(editing) collectEdits();
+  viewMonth=k;
+  buildMonthNav();
+  if(editing){
+    if(!canEditMonth(k)){ saveAndView(); return; }
+    document.getElementById('periodInput').value=curMonth().label;
+    document.getElementById('weekInput').value=curMonth().week;
+    buildEditor();
+  } else render();
+}
+function stepMonth(d){
+  const target=shiftKey(viewMonth,d);
+  if(state.months[target]){
+    if(userScope!=="owner" && target>state.current) return;   // drafts are owner-only
+    gotoMonth(target); return;
+  }
+  if(d>0 && userScope==="owner"){
+    if(!confirm("Start "+keyLabel(target)+"?\n\nMetric names and the “Making It Right” rules are copied from "
+      +keyLabel(viewMonth)+" as a starting point — change them for the new month as you like. "
+      +keyLabel(viewMonth)+" is not touched, and the team keeps seeing "
+      +(state.months[state.current]||{}).label+" until you make the new month live.")) return;
+    if(editing) collectEdits();
+    createMonth(target); persist(); gotoMonth(target);
+  }
+}
+function makeLive(k){
+  if(userScope!=="owner" || !state.months[k]) return;
+  if(!confirm("Make "+keyLabel(k)+" the live board?\n\nThis is what the team links will show from now on. "
+    +"Earlier months stay on the board — anyone can page back to them with the arrows.")) return;
+  if(editing) collectEdits();
+  state.current=k; viewMonth=k; persist(); buildMonthNav();
+  if(editing) buildEditor(); else render();
+}
+function startAndLive(k){
+  if(userScope!=="owner") return;
+  if(!state.months[k]){
+    const from=monthKeys().filter(x=>x<k).pop() || state.current;
+    if(!confirm("Start "+keyLabel(k)+" and make it the live board?\n\nMetrics and rules are copied forward from "
+      +keyLabel(from)+" as a starting point. "+keyLabel(from)+" stays viewable with the arrows.")) return;
+    createMonth(k);
+  }
+  if(editing) collectEdits();
+  state.current=k; viewMonth=k; persist(); buildMonthNav();
+  if(editing) buildEditor(); else render();
+}
+
+/* ---- the arrows ---- */
+function buildMonthNav(){
+  const el=document.getElementById('monthnav'); if(!el) return;
+  if(!state.months[viewMonth] || visibleKeys().indexOf(viewMonth)<0) viewMonth=state.current;
+  const m=curMonth(); if(!m){ el.innerHTML=""; return; }
+  const prevKey=shiftKey(viewMonth,-1), nextKey=shiftKey(viewMonth,1);
+  const vis=visibleKeys();
+  const hasPrev=vis.indexOf(prevKey)>=0;
+  const hasNext=vis.indexOf(nextKey)>=0;
+  const canStartNext = !state.months[nextKey] && userScope==="owner";
+  let badge;
+  if(viewMonth===state.current) badge='<span class="mtag live">Live &mdash; what the team sees</span>';
+  else if(viewMonth<state.current) badge='<span class="mtag past">'+(isComplete(m)?"Closed":"Past")+'</span>';
+  else badge='<span class="mtag draft">Draft &mdash; not visible to the team</span>';
+
+  let h='<button class="marrow" '+(hasPrev?'':'disabled')+' title="'+(hasPrev?esc(keyLabel(prevKey)):"No earlier month on the board")+'" onclick="stepMonth(-1)">&#8249;</button>'
+      + '<span class="mlabel">'+esc(m.label||keyLabel(viewMonth))+'</span>'
+      + '<button class="marrow" '+((hasNext||canStartNext)?'':'disabled')+' title="'
+      + (hasNext?esc(keyLabel(nextKey)):(canStartNext?"Start "+esc(keyLabel(nextKey)):"No later month"))
+      + '" onclick="stepMonth(1)">'+(hasNext?'&#8250;':(canStartNext?'&#43;':'&#8250;'))+'</button>'
+      + badge;
+  if(userScope==="owner" && viewMonth>state.current)
+    h+='<button class="btn-mini" onclick="makeLive(\''+viewMonth+'\')">Make this the live board</button>';
+  el.innerHTML=h;
+
+  // nudge the owner when the calendar has moved past the live board
+  const nudge=document.getElementById('monthnudge');
+  if(nudge){
+    const tk=thisMonthKey();
+    if(userScope==="owner" && state.current<tk){
+      nudge.style.display="";
+      nudge.innerHTML = state.months[tk]
+        ? 'It&rsquo;s '+esc(keyLabel(tk))+' &mdash; the team is still seeing <b>'+esc((state.months[state.current]||{}).label||'')+'</b>. <button class="btn-mini" onclick="makeLive(\''+tk+'\')">Make '+esc(keyLabel(tk))+' live</button>'
+        : 'It&rsquo;s '+esc(keyLabel(tk))+' &mdash; the team is still seeing <b>'+esc((state.months[state.current]||{}).label||'')+'</b>. <button class="btn-mini" onclick="startAndLive(\''+tk+'\')">Start '+esc(keyLabel(tk))+'</button>';
+    } else nudge.style.display="none";
+  }
+  syncEditBtn();
+}
+function syncEditBtn(){
+  const tb=document.getElementById('toggleBtn');
+  if(tb && !editing) tb.style.display = canEditMonth(viewMonth) ? "" : "none";
+  const lb=document.getElementById('layoutBtn');
+  if(lb) lb.style.display = (userScope==="viewer") ? "none" : "";
+}
+
+function distinctLabels(M){
   const out=[], seen=[];
   GROUPS.forEach(g=>{
-    ((state.labels&&state.labels[g])||[]).forEach(raw=>{
+    ((M && M.labels && M.labels[g])||[]).forEach(raw=>{
       const l=String(raw||"").trim().replace(/\s+/g,' ');            // ignore stray/double spaces
       if(l){ const k=l.toLowerCase(); if(seen.indexOf(k)<0){ seen.push(k); out.push(l); } } // and case
     });
   });
   return out;
 }
-function ensureMakeup(){
-  if(!state.makeup) state.makeup={};
-  distinctLabels().forEach(l=>{
-    if(!state.makeup[l]) state.makeup[l] = DEFAULT_MAKEUP[l] ? {can:DEFAULT_MAKEUP[l].can, note:DEFAULT_MAKEUP[l].note} : {can:"no", note:""};
+function ensureMakeup(M){
+  if(!M) return;
+  if(!M.makeup) M.makeup={};
+  // fold away keys with stray whitespace — they can never match a trimmed label again
+  Object.keys(M.makeup).forEach(k=>{
+    const t=String(k).trim().replace(/\s+/g,' ');
+    if(t!==k){ if(!M.makeup[t]) M.makeup[t]=M.makeup[k]; delete M.makeup[k]; }
+  });
+  distinctLabels(M).forEach(l=>{
+    if(!M.makeup[l]) M.makeup[l] = DEFAULT_MAKEUP[l] ? {can:DEFAULT_MAKEUP[l].can, note:DEFAULT_MAKEUP[l].note} : {can:"no", note:""};
   });
 }
-function renderMakeup(){
+function renderMakeup(M){
   const canEl=document.getElementById('canList'), cantEl=document.getElementById('cantList');
-  if(!canEl||!cantEl) return;
-  ensureMakeup();
+  if(!canEl||!cantEl||!M) return;
+  ensureMakeup(M);
   let canH="", cantH="";
-  distinctLabels().forEach(l=>{
-    const m=state.makeup[l]||{can:"no",note:""};
+  distinctLabels(M).forEach(l=>{
+    const m=M.makeup[l]||{can:"no",note:""};
     const note=m.note?` &mdash; ${esc(m.note)}`:"";
     if(m.can==="full") canH+=`<div class="mu-item full100"><b>${esc(l)}</b>${note} <span class="r100">&rarr; restores to full ($100)</span></div>`;
     else if(m.can==="partial") canH+=`<div class="mu-item"><b>${esc(l)}</b>${note}</div>`;
@@ -408,21 +605,22 @@ function renderMakeup(){
   canEl.innerHTML = canH || '<div class="mu-item" style="font-style:italic;color:var(--mid);">Nothing here yet.</div>';
   cantEl.innerHTML = cantH || '<div class="mu-item" style="font-style:italic;color:var(--mid);">Nothing here yet.</div>';
 }
-function buildMakeupEditor(wrap){
-  ensureMakeup();
+function buildMakeupEditor(wrap, M, locked){
+  ensureMakeup(M);
+  const dis = locked ? " disabled" : "";
   const block=document.createElement('div'); block.className="setblock";
-  let h=`<h3>&#128296; &ldquo;Making It Right&rdquo; rules &mdash; one per metric</h3>
-    <p class="hint" style="margin-top:0;margin-bottom:8px;">For each metric, pick whether a miss can be made up and write the short note shown on the board. This rebuilds the &ldquo;Making It Right&rdquo; section automatically.</p>
+  let h=`<h3>&#128296; &ldquo;Making It Right&rdquo; rules for ${esc(M.label)} &mdash; one per metric</h3>
+    <p class="hint" style="margin-top:0;margin-bottom:8px;">For each metric, pick whether a miss can be made up and write the short note shown on the board. This rebuilds the &ldquo;Making It Right&rdquo; section automatically. These rules belong to <b>${esc(M.label)}</b> only &mdash; other months keep their own.</p>
     <table class="editor"><tr><th class="name-col">Metric</th><th style="min-width:160px;">Can it be made up?</th><th>Note shown on the board</th></tr>`;
-  distinctLabels().forEach(l=>{
-    const m=state.makeup[l]||{can:"no",note:""};
+  distinctLabels(M).forEach(l=>{
+    const m=M.makeup[l]||{can:"no",note:""};
     h+=`<tr><td class="name-col">${esc(l)}</td>
-      <td><select class="mk-can" data-mk="${esc(l)}">
+      <td><select class="mk-can" data-mk="${esc(l)}"${dis}>
         <option value="no"${m.can==="no"?" selected":""}>No — can’t be made up</option>
         <option value="partial"${m.can==="partial"?" selected":""}>Yes — back to $50</option>
         <option value="full"${m.can==="full"?" selected":""}>Yes — back to $100</option>
       </select></td>
-      <td><input class="txt mk-note" data-mk="${esc(l)}" value="${esc(m.note||"")}" placeholder="short explanation"></td></tr>`;
+      <td><input class="txt mk-note" data-mk="${esc(l)}" value="${esc(m.note||"")}" placeholder="short explanation"${dis}></td></tr>`;
   });
   h+='</table>';
   block.innerHTML=h;
@@ -446,11 +644,12 @@ async function loadIncidents(){
   }catch(e){ console.warn('Incident log load failed (is the incident_log table created in Supabase?):', e); }
 }
 function logPanelHtml(p){
+  const M=curMonth();
   const entries=(incidentsByPerson[p.id]||[]);
   const list = entries.length
     ? entries.map(r=>`<div class="logitem"><span><b>${esc(fmtDate(r.entry_date))}</b>${r.metric?` &middot; ${esc(r.metric)}`:''} &middot; ${esc(r.note)}</span><button type="button" class="btn-logdel" title="Delete" onclick="deleteIncident('${p.id}',${Number(r.id)})">&#10005;</button></div>`).join('')
     : '<div style="font-size:12px;color:var(--mid);font-style:italic;margin-bottom:6px;">No entries yet.</div>';
-  const opts=(state.labels[p.group]||[]).map(l=>`<option>${esc(l)}</option>`).join('');
+  const opts=(((M&&M.labels)||{})[p.group]||[]).map(l=>`<option>${esc(l)}</option>`).join('');
   return `<tr class="logrow"><td colspan="20" style="padding:12px;">
     <div style="font-weight:bold;color:var(--teal);margin-bottom:8px;">${esc(p.name)} &mdash; incident log <span style="font-weight:normal;color:var(--mid);font-size:12px;">(private &mdash; never shown on the board)</span></div>
     ${list}
@@ -514,27 +713,52 @@ async function loadState(){
   state = JSON.parse(JSON.stringify(DEFAULT_STATE)); migrate();
 }
 function migrate(){
-  // additive only — never touches existing people/scores
-  if(!state.labels) state.labels = JSON.parse(JSON.stringify(DEFAULT_LABELS));
-  GROUPS.forEach(g=>{ if(!state.labels[g] || state.labels[g].length!==5) state.labels[g]=DEFAULT_LABELS[g].slice(); });
-  (state.people||[]).forEach(p=>{ if(!p.location) p.location="carbondale"; }); // additive default
-  (state.people||[]).forEach(p=>{ if(!p.id){ p.id=genId(); pendingIdSave=true; } }); // stable id for incident log
-  if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
-  ensureMakeup(); // additive: seed makeup rules for any metric that lacks one
-  // one-time: the 5 BDR weekly targets were auto-seeded as "partial" with placeholder notes;
-  // correct them to "can't be made up". Only touches the untouched placeholder — never a customized rule.
-  const bdrPlaceholders={
-    "10 Meetings/wk":"Schedule additional partner meetings to catch up.",
-    "40 Drop-offs/wk":"Make additional pop-by visits to catch up.",
-    "3 Social Media Posts/wk":"Post the missed updates to catch up.",
-    "10 New Prospects/wk":"Add more prospects to the pipeline to catch up.",
-    "CRM logged by 6pm":"Log any missed entries by the next morning."
-  };
-  Object.keys(bdrPlaceholders).forEach(l=>{
-    if(state.makeup[l] && state.makeup[l].note===bdrPlaceholders[l] && DEFAULT_MAKEUP[l]){
-      state.makeup[l]={can:DEFAULT_MAKEUP[l].can, note:DEFAULT_MAKEUP[l].note};
-    }
+  // ---- schema 1 -> 2: wrap the single flat board as the first month ----
+  if(!state.months){
+    const k = keyFromLegacyPeriod(state.period);
+    const m = { label: state.period || keyLabel(k),
+                week: Number(state.week)||1,
+                labels: state.labels || JSON.parse(JSON.stringify(DEFAULT_LABELS)),
+                makeup: state.makeup || {},
+                scores: {} };
+    (state.people||[]).forEach(p=>{
+      if(!p.id){ p.id=genId(); }
+      m.scores[p.id] = Array.isArray(p.scores) ? p.scores : ["IP","IP","IP","IP","IP"];
+    });
+    state.months = {}; state.months[k] = m; state.current = k;
+    state.people = (state.people||[]).map(p=>({ id:p.id, name:p.name, role:p.role, group:p.group,
+                                                location:p.location||"carbondale",
+                                                seedStreak:Number(p.goldStreak)||0 }));
+    delete state.labels; delete state.makeup; delete state.period; delete state.week;
+    pendingIdSave = true;   // the reshaped board needs one write
+  }
+  // ---- ongoing, additive only ----
+  if(!state.people) state.people=[];
+  state.people.forEach(p=>{
+    if(!p.id){ p.id=genId(); pendingIdSave=true; }
+    if(!p.location) p.location="carbondale";
+    if(p.seedStreak==null) p.seedStreak=0;
+    delete p.scores; delete p.goldStreak; delete p.lastMonthTotal;   // now per-month / computed
   });
+  if(!state.months) state.months={};
+  if(!monthKeys().length){ const k=thisMonthKey(); createMonth(k); state.current=k; }
+  if(!state.current || !state.months[state.current]) state.current = monthKeys()[monthKeys().length-1];
+  monthKeys().forEach(k=>{
+    const m=state.months[k];
+    if(!m.label) m.label=keyLabel(k);
+    if(!m.week)  m.week=1;
+    if(!m.labels) m.labels=JSON.parse(JSON.stringify(DEFAULT_LABELS));
+    GROUPS.forEach(g=>{ if(!m.labels[g] || m.labels[g].length!==5) m.labels[g]=DEFAULT_LABELS[g].slice(); });
+    if(!m.scores) m.scores={};
+    Object.keys(m.scores).forEach(pid=>{
+      const a=m.scores[pid];
+      if(!Array.isArray(a) || a.length!==5) m.scores[pid]=["IP","IP","IP","IP","IP"];
+      if(!state.people.some(p=>p.id===pid)) delete m.scores[pid];   // orphaned score row
+    });
+    ensureMakeup(m);
+  });
+  if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
+  state.schema = 2;
 }
 async function persist(){
   // always keep a local cache; also write to cloud when in cloud editor mode
@@ -562,29 +786,37 @@ function isPerfect(p){ return p.scores.length>0 && p.scores.every(s=>Number(s)==
 
 /* ===== DISPLAY ===== */
 function render(){
-  document.getElementById('period').textContent=state.period;
+  buildMonthNav();
+  const M=curMonth(); if(!M) return;
+
   // week indicator
-  const wk=Number(state.week)||1;
+  const wk=Number(M.week)||1;
   const wl=document.getElementById('wklabel'), wf=document.getElementById('wkfill');
   if(wk>=5){ wl.textContent="Month complete"; wf.style.width="100%"; }
-  else { wl.textContent="Week "+wk+" of 4 \u2014 the month is still being earned"; wf.style.width=(wk/4*100)+"%"; }
+  else { wl.textContent="Week "+wk+" of 4 — the month is still being earned"; wf.style.width=(wk/4*100)+"%"; }
 
   document.getElementById('locbanner').textContent = LOCATIONS[viewLoc] || "";
-  const visible = state.people.filter(p=>p.location===viewLoc);
-  const data=visible.map(p=>({...p, total:totals(p), perfect:isPerfect(p),
-    improved:totals(p)-(Number(p.lastMonthTotal)||totals(p))}));
+  const visible = peopleInMonth(viewMonth).filter(p=>p.location===viewLoc);
+  const data=visible.map(p=>{
+    const total=totals(p);
+    const prev=lastTotalBefore(viewMonth,p.id);
+    return Object.assign({},p,{ total, perfect:isPerfect(p),
+      goldStreak:streakAt(viewMonth,p.id),
+      lastMonthTotal: prev?prev.total:null,
+      prevKey: prev?prev.key:null,
+      improved: prev ? total-prev.total : 0 });
+  });
 
   // podium — stays aspirational until past Week 1 AND someone has pulled ahead
   const ranked=[...data].sort((a,b)=>b.total-a.total||b.goldStreak-a.goldStreak).slice(0,3);
   const order=[1,0,2],medals=["&#129351;","&#129352;","&#129353;"],classes=["p1","p2","p3"],lbls=["1st","2nd","3rd"];
   const pod=document.getElementById('podium'); pod.innerHTML="";
-  const wkNow=Number(state.week)||1;
   const topScore=ranked.length?ranked[0].total:0;
   const restScores=data.map(p=>p.total).sort((a,b)=>b-a).slice(1);
   const secondScore=restScores.length?restScores[0]:0;
-  // "pulled ahead" = someone reached a full $500, OR the leader is clearly out front of the next person
   const someoneAhead = topScore>=500 || (topScore>0 && (topScore-secondScore)>=100);
-  const revealPodium = wkNow>=2 && someoneAhead && data.length>0;
+  // a closed month always shows its winners; a live month stays aspirational until someone pulls ahead
+  const revealPodium = data.length>0 && (wk>=5 || (wk>=2 && someoneAhead));
   if(!revealPodium){
     pod.innerHTML = `<div style="text-align:center;width:100%;padding:24px 10px;">
       <div style="font-size:40px;margin-bottom:8px;">&#127942;</div>
@@ -612,9 +844,9 @@ function render(){
 
   // most improved
   const mi=document.getElementById('mostimproved');
-  const imp=data.filter(p=>p.improved>0).sort((a,b)=>b.improved-a.improved);
+  const imp=data.filter(p=>p.lastMonthTotal!==null && p.improved>0).sort((a,b)=>b.improved-a.improved);
   if(!imp.length) mi.innerHTML='<p class="empty">Most Improved highlights the biggest jump from last month &mdash; check back as the month fills in.</p>';
-  else {const p=imp[0]; mi.innerHTML=`<div class="mi"><div class="big">&#128640;</div><div><div class="nm">${esc(p.name)} &mdash; up ${fmt(p.improved)} from last month</div><div class="delta">${esc(p.role)} &middot; climbed from ${fmt(p.lastMonthTotal)} to ${fmt(p.total)}. That&rsquo;s the direction that counts.</div></div></div>`;}
+  else {const p=imp[0]; mi.innerHTML=`<div class="mi"><div class="big">&#128640;</div><div><div class="nm">${esc(p.name)} &mdash; up ${fmt(p.improved)} from ${esc(keyLabel(p.prevKey))}</div><div class="delta">${esc(p.role)} &middot; climbed from ${fmt(p.lastMonthTotal)} to ${fmt(p.total)}. That&rsquo;s the direction that counts.</div></div></div>`;}
 
   // role sections
   const rs=document.getElementById('roleSections'); rs.innerHTML="";
@@ -625,7 +857,7 @@ function render(){
     const roleColor = ROLE_COLORS[gk]||"var(--teal)";
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
-    set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(state.labels[gk][i])}</th>`);
+    set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(M.labels[gk][i])}</th>`);
     html+='<th class="c">Current Potential</th></tr>';
     members.forEach(p=>{
       html+=`<tr><td class="nm-cell">${esc(p.name)}${p.perfect?' <span style="color:var(--gold)">&#11088;</span>':''}</td>`;
@@ -636,7 +868,7 @@ function render(){
     });
     html+='</table>'; sec.innerHTML=html; rs.appendChild(sec);
   });
-  renderMakeup();
+  renderMakeup(M);
 }
 function shortName(n){ // shorten long metric labels for column headers
   return n.replace("Attendance & Punctuality","Attendance").replace("Jobsite Documentation","Jobsite Docs")
@@ -670,101 +902,146 @@ function setViewLoc(k){ viewLoc=k; buildLocToggle(); render(); }
 /* ===== EDIT ===== */
 let editing=false;
 function toggleEdit(){ editing?saveAndView():openEdit(); }
-async function openEdit(){ editing=true;
+async function openEdit(){
+  if(!canEditMonth(viewMonth)){ alert((curMonth()||{}).label+" is read-only for you."); return; }
+  editing=true;
   document.getElementById('displayView').classList.add('hidden');
   document.getElementById('editView').classList.remove('hidden');
-  const b=document.getElementById('toggleBtn'); b.textContent="\u2713 Save & View"; b.className="btn-save";
-  document.getElementById('periodInput').value=state.period;
-  document.getElementById('weekInput').value=state.week;
+  const b=document.getElementById('toggleBtn'); b.textContent="✓ Save & View"; b.className="btn-save"; b.style.display="";
+  document.getElementById('periodInput').value=curMonth().label;
+  document.getElementById('weekInput').value=curMonth().week;
   buildEditor();
   await loadIncidents();
   buildEditor();
 }
 function buildEditor(){
   const wrap=document.getElementById('editSets'); wrap.innerHTML="";
+  const M=curMonth(); if(!M) return;
+  const locked = !canEditMonth(viewMonth);
+  const earliest = monthKeys()[0];
+  const isEarliest = viewMonth===earliest;
+
+  const ctx=document.getElementById('editctx');
+  if(ctx){
+    ctx.className = "editctx" + (locked?" locked":"");
+    ctx.innerHTML = locked
+      ? `<b>${esc(M.label)}</b> is read-only for you. Completed months stay locked so the record can&rsquo;t drift &mdash; ask Joel if something needs correcting.`
+      : (viewMonth===state.current
+          ? `You are editing <b>${esc(M.label)}</b> &mdash; the live board the team is looking at right now.`
+          : (viewMonth>state.current
+              ? `You are building <b>${esc(M.label)}</b> ahead of time. The team still sees <b>${esc((state.months[state.current]||{}).label||"")}</b> until you press &ldquo;Make this the live board.&rdquo;`
+              : `You are editing <b>${esc(M.label)}</b>, a past month. The team&rsquo;s live board is <b>${esc((state.months[state.current]||{}).label||"")}</b>.`));
+  }
+
   GROUPS.forEach(gk=>{
     const set=ROLE_SETS[gk];
+    const members=state.people.filter(p=>p.group===gk && Array.isArray(M.scores[p.id]));
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
-    set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(state.labels[gk][mi])}" placeholder="Metric ${mi+1}"><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" \u00b7 hit/miss":""}</span></th>`);
-    h+='<th>Streak</th><th>Last mo.$</th><th></th><th>Log</th></tr>';
-    state.people.forEach((p,pi)=>{ if(p.group!==gk) return;
-      const editable = canEdit(p); const dis = editable ? "" : " disabled";
-      const lockNote = editable ? "" : ` title="${esc(LOCATIONS[p.location]||p.location)} — outside your edit access"`;
-      h+=`<tr${editable?"":' style="opacity:.55;"'}${lockNote}><td class="name-col"><input class="txt" data-f="name" data-i="${pi}" value="${esc(p.name)}"${dis}></td>
-          <td><input class="txt" data-f="role" data-i="${pi}" value="${esc(p.role)}"${dis}></td>
-          <td><select class="loc" data-f="location" data-i="${pi}"${dis}>`;
+    set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" · hit/miss":""}</span></th>`);
+    h+=`<th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Carried from the previous month on the board — calculated">Last mo.$</th><th></th><th>Log</th></tr>`;
+    members.forEach(p=>{
+      const editable = !locked && canEdit(p); const dis = editable ? "" : " disabled";
+      const lockNote = editable ? "" : ` title="${esc(locked ? M.label+" is read-only" : (LOCATIONS[p.location]||p.location)+" — outside your edit access")}"`;
+      const sc=M.scores[p.id];
+      h+=`<tr${editable?"":' style="opacity:.55;"'}${lockNote}><td class="name-col"><input class="txt" data-f="name" data-p="${p.id}" value="${esc(p.name)}"${dis}></td>
+          <td><input class="txt" data-f="role" data-p="${p.id}" value="${esc(p.role)}"${dis}></td>
+          <td><select class="loc" data-f="location" data-p="${p.id}"${dis}>`;
       Object.keys(LOCATIONS).forEach(lk=> h+=`<option value="${lk}"${p.location===lk?" selected":""}>${esc(LOCATIONS[lk])}</option>`);
       h+=`</select></td>`;
       set.metrics.forEach((m,si)=>{
-        const raw=p.scores[si]; const cur = raw==="IP"?"IP":raw==="P"?"50":String(Number(raw)||0);
+        const raw=sc[si]; const cur = raw==="IP"?"IP":raw==="P"?"50":String(Number(raw)||0);
         const cls = cur==="IP"?"sNA":cur==="100"?"s100":cur==="50"?"s50":"s0";
-        h+=`<td><select class="${cls}" data-i="${pi}" data-s="${si}" onchange="recolor(this)"${dis}>
+        h+=`<td><select class="${cls}" data-p="${p.id}" data-s="${si}" onchange="recolor(this)"${dis}>
             <option value="IP"${cur==="IP"?" selected":""}>In progress</option>
             <option value="100"${cur==="100"?" selected":""}>Met</option>`;
         if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
         h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
       });
-      h+=`<td><input class="num" data-f="goldStreak" data-i="${pi}" type="number" min="0" value="${Number(p.goldStreak)||0}"${dis}></td>
-          <td><input class="num" data-f="lastMonthTotal" data-i="${pi}" type="number" min="0" step="50" value="${Number(p.lastMonthTotal)||0}"${dis}></td>
-          <td>${editable?`<button class="btn-del" onclick="removePerson(${pi})">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
-          <td>${editable?`<button type="button" class="btn-log" onclick="toggleLog('${p.id}')">&#128221; Log (${(incidentsByPerson[p.id]||[]).length})</button>`:''}</td></tr>`;
+      const prev=lastTotalBefore(viewMonth,p.id);
+      h+=`<td>${isEarliest
+            ? `<input class="num" data-f="seedStreak" data-p="${p.id}" type="number" min="0" value="${Number(p.seedStreak)||0}"${dis}>`
+            : `<span class="calc">${streakAt(viewMonth,p.id)}</span>`}</td>
+          <td><span class="calc" title="${prev?esc(keyLabel(prev.key)):"No earlier month on the board"}">${prev?fmt(prev.total):"&mdash;"}</span></td>
+          <td>${editable?`<button class="btn-del" onclick="removePerson('${p.id}')">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
+          <td>${(!locked && canEdit(p))?`<button type="button" class="btn-log" onclick="toggleLog('${p.id}')">&#128221; Log (${(incidentsByPerson[p.id]||[]).length})</button>`:''}</td></tr>`;
       if(editable && expandedLog===p.id) h+=logPanelHtml(p);
     });
     h+='</table>';
     block.innerHTML=h;
-    const addBtn=document.createElement('button'); addBtn.className="btn-add"; addBtn.style.marginTop="8px";
-    addBtn.innerHTML="&#43; Add "+set.label;
-    addBtn.onclick=()=>addPerson(gk);
-    block.appendChild(addBtn);
+    if(!locked){
+      const addBtn=document.createElement('button'); addBtn.className="btn-add"; addBtn.style.marginTop="8px";
+      addBtn.innerHTML="&#43; Add "+set.label;
+      addBtn.onclick=()=>addPerson(gk);
+      block.appendChild(addBtn);
+    }
     wrap.appendChild(block);
   });
-  buildMakeupEditor(wrap);
+  buildMakeupEditor(wrap, M, locked);
 }
 function recolor(sel){ sel.className = sel.value==="IP"?"sNA":sel.value==="100"?"s100":sel.value==="50"?"s50":"s0"; }
 function collectEdits(){
-  state.period=document.getElementById('periodInput').value||state.period;
-  state.week=Number(document.getElementById('weekInput').value)||1;
+  const M=curMonth();
+  if(!M || !canEditMonth(viewMonth)) return;      // never write into a month this user can't edit
+  const pin=document.getElementById('periodInput'); if(pin) M.label = pin.value || M.label;
+  const win=document.getElementById('weekInput');  if(win) M.week  = Number(win.value)||1;
   document.querySelectorAll('#editSets input[data-lbl-g]').forEach(inp=>{
     const g=inp.dataset.lblG, i=Number(inp.dataset.lblI);
-    state.labels[g][i] = (inp.value || DEFAULT_LABELS[g][i]).trim();
+    M.labels[g][i] = (inp.value || DEFAULT_LABELS[g][i]).trim();
   });
   document.querySelectorAll('#editSets input[data-f]').forEach(inp=>{
-    const i=Number(inp.dataset.i),f=inp.dataset.f;
-    if(f==='name'||f==='role') state.people[i][f]=inp.value; else state.people[i][f]=Number(inp.value)||0;
+    const p=state.people.find(x=>x.id===inp.dataset.p); if(!p) return;
+    const f=inp.dataset.f;
+    if(f==='name'||f==='role') p[f]=inp.value; else p[f]=Number(inp.value)||0;
   });
   document.querySelectorAll('#editSets select[data-f="location"]').forEach(sel=>{
-    state.people[Number(sel.dataset.i)].location = sel.value;
+    const p=state.people.find(x=>x.id===sel.dataset.p); if(p) p.location=sel.value;
   });
   document.querySelectorAll('#editSets select[data-s]').forEach(sel=>{
-    const v=sel.value; state.people[Number(sel.dataset.i)].scores[Number(sel.dataset.s)] = v==="IP"?"IP":v==="50"?"P":Number(v);
+    const arr=M.scores[sel.dataset.p]; if(!arr) return;
+    const v=sel.value; arr[Number(sel.dataset.s)] = v==="IP"?"IP":v==="50"?"P":Number(v);
   });
-  if(!state.makeup) state.makeup={};
+  if(!M.makeup) M.makeup={};
   document.querySelectorAll('#editSets .mk-can').forEach(sel=>{
-    const l=sel.dataset.mk; if(!state.makeup[l]) state.makeup[l]={can:"no",note:""}; state.makeup[l].can=sel.value;
+    const l=sel.dataset.mk; if(!M.makeup[l]) M.makeup[l]={can:"no",note:""}; M.makeup[l].can=sel.value;
   });
   document.querySelectorAll('#editSets .mk-note').forEach(inp=>{
-    const l=inp.dataset.mk; if(!state.makeup[l]) state.makeup[l]={can:"no",note:""}; state.makeup[l].note=inp.value;
+    const l=inp.dataset.mk; if(!M.makeup[l]) M.makeup[l]={can:"no",note:""}; M.makeup[l].note=inp.value;
   });
+  ensureMakeup(M);
 }
 function saveAndView(){ collectEdits(); persist(); editing=false;
   document.getElementById('editView').classList.add('hidden');
   document.getElementById('displayView').classList.remove('hidden');
-  const b=document.getElementById('toggleBtn'); b.textContent="\u270E Edit scores"; b.className="btn-edit"; render();
+  const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit scores"; b.className="btn-edit"; render();
 }
 function addPerson(gk){ collectEdits();
+  if(!canEditMonth(viewMonth)) return;
   const loc = (userScope==="carbondale"||userScope==="gypsum") ? userScope : "carbondale";
-  state.people.push({name:"New Person",role:"Role",group:gk,location:loc,scores:["IP","IP","IP","IP","IP"],goldStreak:0,lastMonthTotal:0,id:genId()});
+  const p={ id:genId(), name:"New Person", role:"Role", group:gk, location:loc, seedStreak:0 };
+  state.people.push(p);
+  // on the board from this month forward; earlier months are left exactly as they were
+  monthKeys().filter(k=>k>=viewMonth).forEach(k=>{ state.months[k].scores[p.id]=["IP","IP","IP","IP","IP"]; });
   persist(); buildEditor();
 }
-function removePerson(i){ collectEdits();
-  if(confirm("Remove "+(state.people[i].name||"this person")+" from the board?")){ state.people.splice(i,1); persist(); buildEditor(); }
+function removePerson(pid){ collectEdits();
+  if(!canEditMonth(viewMonth)) return;
+  const p=state.people.find(x=>x.id===pid); if(!p) return;
+  const later=monthKeys().filter(k=>k>=viewMonth);
+  if(!confirm("Take "+(p.name||"this person")+" off the board from "+curMonth().label+" onward?\n\nEarlier months keep their record exactly as it is.")) return;
+  later.forEach(k=>{ delete state.months[k].scores[pid]; });
+  if(!monthKeys().some(k=>state.months[k].scores[pid])) state.people=state.people.filter(x=>x.id!==pid);
+  persist(); buildEditor();
 }
 function resetAll(){
-  if(confirm("Reset the WHOLE board to a blank start? This clears all people and scores on this computer. Cannot be undone.")){
-    if(confirm("Are you sure? Everything currently on the board will be erased.")){
-      state={period:"",week:1,people:[],labels:JSON.parse(JSON.stringify(DEFAULT_LABELS))}; persist(); buildEditor();
-      document.getElementById('periodInput').value=""; document.getElementById('weekInput').value=1;
+  if(userScope!=="owner"){ alert("Only the owner can reset the board."); return; }
+  if(confirm("Reset the WHOLE board — every person and EVERY month of history? Cannot be undone.")){
+    if(confirm("Are you sure? All month history will be erased, not just this month.")){
+      const k=thisMonthKey();
+      state={schema:2, people:[], months:{}, current:k, colWidths:DEFAULT_WIDTHS.slice()};
+      createMonth(k); viewMonth=k; persist(); buildMonthNav(); buildEditor();
+      document.getElementById('periodInput').value=state.months[k].label;
+      document.getElementById('weekInput').value=1;
     }
   }
 }
@@ -781,17 +1058,14 @@ async function refreshScope(){
 }
 function updateAuthBar(){
   const bar=document.getElementById('authbar'); if(!bar) return;
-  if(!CLOUD){ bar.style.display="none"; return; }
+  if(!CLOUD){ bar.style.display="none"; syncEditBtn(); return; }
   bar.style.display="";
   const scopeLabel = userScope==="owner"?"Owner — full access"
     : userScope==="carbondale"?"Carbondale editor" : userScope==="gypsum"?"Gypsum editor" : "View only";
   bar.innerHTML = userScope==="viewer"
     ? `<span class="scope view">${scopeLabel}</span> <button class="btn-mini" onclick="signIn()">Sign in to edit</button>`
     : `<span class="scope edit">${scopeLabel}</span> <button class="btn-mini" onclick="signOut()">Sign out</button>`;
-  // hide the Edit button entirely for viewers
-  const tb=document.getElementById('toggleBtn'); if(tb) tb.style.display = userScope==="viewer" ? "none" : "";
-  // hide layout adjust from view-only visitors too
-  const lb=document.getElementById('layoutBtn'); if(lb) lb.style.display = userScope==="viewer" ? "none" : "";
+  syncEditBtn();   // the Edit button also depends on which month is on screen
 }
 async function signIn(){
   const email = prompt("Enter your work email:");
@@ -800,9 +1074,9 @@ async function signIn(){
   if(!password) return;
   const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
   if(error){ alert("Sign-in error: "+error.message); return; }
-  await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); render();
+  await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; buildMonthNav(); render();
 }
-async function signOut(){ await sb.auth.signOut(); userScope="viewer"; resolveView(); buildLocToggle(); updateAuthBar(); render(); }
+async function signOut(){ await sb.auth.signOut(); userScope="viewer"; editing=false; resolveView(); buildLocToggle(); updateAuthBar(); viewMonth=state.current; buildMonthNav(); render(); }
 
 /* ===== LAYOUT (column width) MODE ===== */
 let layoutOn=false;
@@ -876,13 +1150,15 @@ function resetWidths(){
 (async function init(){
   await refreshScope();
   await loadState();
+  viewMonth = state.current;
   if(pendingIdSave && CLOUD && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; }
   resolveView();
   buildLocToggle();
   updateAuthBar();
+  buildMonthNav();
   render();
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } render(); });
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
   }
 })();
 </script>
