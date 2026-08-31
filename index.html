@@ -539,7 +539,8 @@ function buildMonthNav(){
   const hasNext=vis.indexOf(nextKey)>=0;
   const canStartNext = !state.months[nextKey] && userScope==="owner";
   let badge;
-  if(viewMonth===state.current) badge='<span class="mtag live">Live &mdash; what the team sees</span>';
+  // the owner is the only one juggling drafts, so only they need the "what the team sees" reminder
+  if(viewMonth===state.current) badge='<span class="mtag live">'+(userScope==="owner"?'Live &mdash; what the team sees':'Live Month')+'</span>';
   else if(viewMonth<state.current) badge='<span class="mtag past">'+(isComplete(m)?"Closed":"Past")+'</span>';
   else badge='<span class="mtag draft">Draft &mdash; not visible to the team</span>';
 
