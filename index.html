@@ -28,6 +28,8 @@
   .editctx{max-width:1540px;margin:0 auto 16px;font-size:13.5px;background:var(--hdrfill);border:1px solid var(--mid);border-radius:9px;padding:10px 15px;color:var(--teal);}
   .editctx.locked{background:#f6ecea;border-color:var(--red);color:var(--red);}
   .calc{font-size:13px;color:var(--mid);font-weight:bold;}
+  .btn-loghist{background:#fff;color:var(--mid);border:1px solid var(--line);font-size:11.5px;
+               font-weight:normal;padding:3px 10px;border-radius:6px;margin-left:6px;}
   .wkwrap{max-width:520px;margin:12px auto 0;}
   .wklabel{font-size:13px;color:var(--mid);margin-bottom:5px;text-align:center;}
   .wkbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;}
@@ -363,6 +365,7 @@ let lockedLoc = false;        // true = dedicated team link or signed-in manager
 let pendingIdSave = false;    // set when new person IDs are minted, so they get saved once
 let incidentsByPerson = {};   // personId -> array of private incident-log rows (editor-only)
 let expandedLog = null;       // which person's log panel is open in the editor
+let showAllLog  = false;      // false = log shows only the month on screen; true = full history
 
 /* ===== "MAKING IT RIGHT" makeup rules (Phase 2) =====
    One rule per distinct metric label. can: "no" | "partial" ($50) | "full" ($100).
@@ -484,6 +487,7 @@ function gotoMonth(k){
   if(!state.months[k]) return;
   if(editing) collectEdits();
   viewMonth=k;
+  showAllLog=false;          // each month opens on its own log, not the full history
   buildMonthNav();
   if(editing){
     if(!canEditMonth(k)){ saveAndView(); return; }
@@ -646,21 +650,64 @@ async function loadIncidents(){
   try{
     const { data, error } = await sb.from('incident_log').select('*').order('entry_date',{ascending:false}).order('id',{ascending:false});
     if(error) throw error;
-    (data||[]).forEach(r=>{ (incidentsByPerson[r.person_id]=incidentsByPerson[r.person_id]||[]).push(r); });
+    const oldest = monthKeys()[0] || state.current;
+    (data||[]).forEach(r=>{
+      // a legacy row with no date at all belongs to the earliest month rather than to none
+      if(!logStamp(r)) r._fallbackMonth = oldest;
+      (incidentsByPerson[r.person_id]=incidentsByPerson[r.person_id]||[]).push(r);
+    });
   }catch(e){ console.warn('Incident log load failed (is the incident_log table created in Supabase?):', e); }
 }
+/* The log lives in its own Supabase table and is NOT copied when a month is duplicated —
+   it has no month of its own, so by default we scope it to the month on screen. Entries are
+   never deleted by a rollover; they just stop showing once that month is behind you. */
+/* An entry's month, in order of preference:
+     1. entry_date  — the day the incident happened (what we always write now)
+     2. created_at  — the day it was logged, if the table has that column
+   Anything with neither is a legacy row; loadIncidents() files those under the earliest month
+   so nothing is ever stranded outside every month view. */
+function logStamp(r){ return r.entry_date || r.created_at || r.inserted_at || null; }
+function logMonthOf(r){
+  const d = logStamp(r);
+  if(d) return String(d).slice(0,7);
+  return r._fallbackMonth || null;
+}
+function entriesFor(pid){
+  const all = incidentsByPerson[pid] || [];
+  if(showAllLog) return all;
+  // An entry belongs to a month only if it is dated. Undated ones (from before the date box was
+  // required) belong to no month and stay out of every month view — a new month always opens
+  // clean. They are never deleted; "Show all history" still lists them.
+  return all.filter(r=> logMonthOf(r)===viewMonth);
+}
+function defaultLogDate(){
+  const now=new Date();
+  if(mkKey(now.getFullYear(), now.getMonth())===viewMonth){
+    return now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+  }
+  return viewMonth+"-01";   // logging against another month: start it at the 1st
+}
+function toggleLogHistory(){ collectEdits(); showAllLog=!showAllLog; buildEditor(); }
+
 function logPanelHtml(p){
   const M=curMonth();
-  const entries=(incidentsByPerson[p.id]||[]);
-  const list = entries.length
-    ? entries.map(r=>`<div class="logitem"><span><b>${esc(fmtDate(r.entry_date))}</b>${r.metric?` &middot; ${esc(r.metric)}`:''} &middot; ${esc(r.note)}</span><button type="button" class="btn-logdel" title="Delete" onclick="deleteIncident('${p.id}',${Number(r.id)})">&#10005;</button></div>`).join('')
-    : '<div style="font-size:12px;color:var(--mid);font-style:italic;margin-bottom:6px;">No entries yet.</div>';
+  const all=(incidentsByPerson[p.id]||[]);
+  const shown=entriesFor(p.id);
+  const hiddenCount=all.length-shown.length;
+  const list = shown.length
+    ? shown.map(r=>`<div class="logitem"><span><b>${esc(r.entry_date?fmtDate(r.entry_date):(logStamp(r)?"logged "+fmtDate(String(logStamp(r)).slice(0,10)):"undated"))}</b>${r.metric?` &middot; ${esc(r.metric)}`:''} &middot; ${esc(r.note)}</span><button type="button" class="btn-logdel" title="Delete this entry permanently" onclick="deleteIncident('${p.id}',${Number(r.id)})">&#10005;</button></div>`).join('')
+    : `<div style="font-size:12px;color:var(--mid);font-style:italic;margin-bottom:6px;">Nothing logged${showAllLog?'':' for '+esc(M.label)} &mdash; a clean sheet.</div>`;
+  const toggle = (hiddenCount>0 || showAllLog)
+    ? `<button type="button" class="btn-loghist" onclick="toggleLogHistory()">${showAllLog
+        ? '&#8592; Just '+esc(M.label)
+        : 'Show all history ('+hiddenCount+' other'+(hiddenCount===1?'':'s')+')'}</button>`
+    : '';
   const opts=(((M&&M.labels)||{})[p.group]||[]).map(l=>`<option>${esc(l)}</option>`).join('');
   return `<tr class="logrow"><td colspan="20" style="padding:12px;">
-    <div style="font-weight:bold;color:var(--teal);margin-bottom:8px;">${esc(p.name)} &mdash; incident log <span style="font-weight:normal;color:var(--mid);font-size:12px;">(private &mdash; never shown on the board)</span></div>
+    <div style="font-weight:bold;color:var(--teal);margin-bottom:8px;">${esc(p.name)} &mdash; incident log <span style="font-weight:normal;color:var(--mid);font-size:12px;">&middot; ${showAllLog?'all history':esc(M.label)} &middot; private, never shown on the board</span> ${toggle}</div>
     ${list}
     <div class="logadd">
-      <input type="date" id="logdate_${p.id}" title="Date of the incident">
+      <input type="date" id="logdate_${p.id}" value="${defaultLogDate()}" title="Date of the incident">
       <select id="logmetric_${p.id}"><option value="">(metric &mdash; optional)</option>${opts}</select>
       <input type="text" id="lognote_${p.id}" placeholder="what happened…">
       <button type="button" class="btn-logadd" onclick="submitIncident('${p.id}')">&#43; Add</button>
@@ -669,7 +716,7 @@ function logPanelHtml(p){
 function toggleLog(pid){ collectEdits(); expandedLog=(expandedLog===pid?null:pid); buildEditor(); }
 function submitIncident(pid){
   const p=state.people.find(x=>x.id===pid); if(!p) return;
-  const date=document.getElementById('logdate_'+pid).value;
+  const date=document.getElementById('logdate_'+pid).value || defaultLogDate();  // never store an undated entry
   const metric=document.getElementById('logmetric_'+pid).value;
   const note=(document.getElementById('lognote_'+pid).value||'').trim();
   if(!note){ alert('Add a short note (what happened).'); return; }
@@ -678,7 +725,7 @@ function submitIncident(pid){
 async function addIncident(p, date, metric, note){
   if(!CLOUD){ alert('The incident log needs the online board — sign in on the hosted site.'); return; }
   try{
-    const { data, error } = await sb.from('incident_log').insert({ person_id:p.id, location:p.location, entry_date:date||null, metric:metric||null, note }).select().single();
+    const { data, error } = await sb.from('incident_log').insert({ person_id:p.id, location:p.location, entry_date:date||defaultLogDate(), metric:metric||null, note }).select().single();
     if(error) throw error;
     (incidentsByPerson[p.id]=incidentsByPerson[p.id]||[]).unshift(data);
     collectEdits(); buildEditor();
@@ -982,7 +1029,7 @@ function buildEditor(){
             : `<span class="calc">${streakAt(viewMonth,p.id)}</span>`}</td>
           <td><span class="calc" title="${prev?esc(keyLabel(prev.key)):"No earlier month on the board"}">${prev?fmt(prev.total):"&mdash;"}</span></td>
           <td>${editable?`<button class="btn-del" onclick="removePerson('${p.id}')">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
-          <td>${(!locked && canEdit(p))?`<button type="button" class="btn-log" onclick="toggleLog('${p.id}')">&#128221; Log (${(incidentsByPerson[p.id]||[]).length})</button>`:''}</td></tr>`;
+          <td>${(!locked && canEdit(p))?`<button type="button" class="btn-log" title="${(incidentsByPerson[p.id]||[]).length} entries in total across all months" onclick="toggleLog('${p.id}')">&#128221; Log (${entriesFor(p.id).length})</button>`:''}</td></tr>`;
       if(editable && expandedLog===p.id) h+=logPanelHtml(p);
     });
     h+='</table>';

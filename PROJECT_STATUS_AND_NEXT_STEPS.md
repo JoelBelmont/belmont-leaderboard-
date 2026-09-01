@@ -1,6 +1,6 @@
 # Belmont Reliability Premium Leaderboard — Project Status & Handoff
 
-_Last updated: August 31, 2026 — month history added (schema 2). Rewritten from the code._
+_Last updated: September 1, 2026. Rewritten from the code; verify against `index.html` if in doubt._
 
 This note lets anyone — Joel, or a fresh Claude Code session on another computer — pick up this
 project without the original chat history. Read this first, then open `index.html`.
@@ -123,16 +123,28 @@ It is not in `GROUPS` and should not be assigned to new people.
   owner gets the toggle. Podium, Gold Club, streaks and Most Improved all compute per-team.
   See `resolveView()`, `buildLocToggle()`, and the filter in `render()`.
 - **Editable metric names.** The five column labels per role group are editable in the Edit view
-  and stored in `state.labels`. (The metric *definitions* in `ROLE_SETS` — type and band — are
-  still hard-coded. Only the display name is editable.)
+  and stored per month in `months[k].labels`. (The metric *definitions* in `ROLE_SETS` — type and
+  band — are still hard-coded. Only the display name is editable.)
 - **Self-updating "Making It Right" (was Phase 2 item 2).** `buildMakeupEditor()` gives one row
   per distinct metric: can't be made up / back to $50 / back to $100, plus the note shown on the
-  board. `renderMakeup()` rebuilds the two lists from `state.makeup`, and `distinctLabels()`
-  derives the metric list from the *current* labels — so renaming a metric re-keys its rule
-  automatically.
-- **Private incident log (Phase 3a).** Dated per-person notes in `incident_log`, invisible to the
-  public view-only links.
+  board. `renderMakeup(M)` rebuilds the two lists from that month's `makeup`, and
+  `distinctLabels(M)` derives the metric list from that month's labels — so renaming a metric
+  re-keys its rule automatically, and each month keeps its own set of rules.
+- **Private incident log (Phase 3a), scoped to the month on screen.** Per-person notes in
+  `incident_log`, invisible to the public view-only links (RLS verified: an anonymous read
+  returns `[]`). The table has no month column, so `logMonthOf()` resolves an entry's month from
+  `entry_date`, else `created_at`, else the earliest month on the board — nothing can land
+  outside every month. A new month therefore opens with a clean log while older entries stay
+  under their own month, reachable any time via "Show all history". Entries are never deleted by
+  a rollover; the per-entry ✕ is the only thing that removes one. The date box pre-fills from the
+  viewed month and an empty box is stored as that date, so no new entry can be undated.
 - **Adjustable column widths**, drag-to-resize, persisted in `state.colWidths`.
+- **Team total row.** A gold summary row under the last role table showing earned vs. possible for
+  the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays
+  aligned under Current Potential when column widths change. Follows the location toggle and the
+  month arrows; omitted entirely when a location has nobody.
+- **Audience-aware month badge.** The owner sees "Live — what the team sees" (they're the only one
+  juggling drafts); managers and view-only visitors see "Live Month".
 - **Month history with ‹ › navigation** — see below.
 
 ## How months work
