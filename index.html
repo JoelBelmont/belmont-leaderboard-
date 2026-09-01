@@ -465,6 +465,25 @@ function streakAt(k,pid){
   if(consumedAll){ const p=state.people.find(x=>x.id===pid); run += Number(p&&p.seedStreak)||0; }
   return run;
 }
+/* Year to date: every month of the SAME calendar year up to and including k.
+   Resets automatically each January, because the year is part of the month key. */
+function ytdMonths(k){
+  const y=keyParts(k).y;
+  return monthKeys().filter(x=>x<=k && keyParts(x).y===y);
+}
+function ytdTotal(pid,k){
+  let sum=0;
+  ytdMonths(k).forEach(x=>{ const t=totalIn(x,pid); if(t!==null) sum+=t; });
+  return sum;
+}
+function ytdBreakdown(pid,k){
+  const parts=[];
+  ytdMonths(k).forEach(x=>{
+    const t=totalIn(x,pid); if(t===null) return;
+    parts.push(keyLabel(x).split(" ")[0].slice(0,3)+" "+fmt(t)+(isComplete(state.months[x])?"":" (in progress)"));
+  });
+  return parts.length ? parts.join("  ·  ")+"   =  "+fmt(ytdTotal(pid,k)) : "Nothing recorded yet this year";
+}
 function lastTotalBefore(k,pid){
   const keys=monthKeys().filter(x=>x<k);
   for(let i=keys.length-1;i>=0;i--){ const t=totalIn(keys[i],pid); if(t!==null) return {total:t, key:keys[i]}; }
@@ -1004,7 +1023,7 @@ function buildEditor(){
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
     set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" · hit/miss":""}</span></th>`);
-    h+=`<th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Carried from the previous month on the board — calculated">Last mo.$</th><th></th><th>Log</th></tr>`;
+    h+=`<th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Total earned so far in ${keyParts(viewMonth).y}, through ${esc(M.label)} — calculated, resets each January">YTD $</th><th></th><th>Log</th></tr>`;
     members.forEach(p=>{
       const editable = !locked && canEdit(p); const dis = editable ? "" : " disabled";
       const lockNote = editable ? "" : ` title="${esc(locked ? M.label+" is read-only" : (LOCATIONS[p.location]||p.location)+" — outside your edit access")}"`;
@@ -1023,11 +1042,10 @@ function buildEditor(){
         if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
         h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
       });
-      const prev=lastTotalBefore(viewMonth,p.id);
       h+=`<td>${isEarliest
             ? `<input class="num" data-f="seedStreak" data-p="${p.id}" type="number" min="0" value="${Number(p.seedStreak)||0}"${dis}>`
             : `<span class="calc">${streakAt(viewMonth,p.id)}</span>`}</td>
-          <td><span class="calc" title="${prev?esc(keyLabel(prev.key)):"No earlier month on the board"}">${prev?fmt(prev.total):"&mdash;"}</span></td>
+          <td><span class="calc" title="${esc(ytdBreakdown(p.id,viewMonth))}">${fmt(ytdTotal(p.id,viewMonth))}</span></td>
           <td>${editable?`<button class="btn-del" onclick="removePerson('${p.id}')">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
           <td>${(!locked && canEdit(p))?`<button type="button" class="btn-log" title="${(incidentsByPerson[p.id]||[]).length} entries in total across all months" onclick="toggleLog('${p.id}')">&#128221; Log (${entriesFor(p.id).length})</button>`:''}</td></tr>`;
       if(editable && expandedLog===p.id) h+=logPanelHtml(p);

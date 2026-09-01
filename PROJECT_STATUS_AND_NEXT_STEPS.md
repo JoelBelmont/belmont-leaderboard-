@@ -162,10 +162,13 @@ Each month is its own record. The arrows in the header move between them.
 - **Going live.** "Make this the live board" sets `state.current`. From the 1st of a month whose
   board isn't live yet, the owner also gets a banner offering to start or promote it. Nothing
   switches over automatically — promoting is always a deliberate click.
-- **Rollover is calculated, not typed.** "Last mo. $" and the Gold Club streak are derived from
-  the stored months (`lastTotalBefore()`, `streakAt()`) and shown read-only in the editor. A month
-  still in progress neither counts toward a streak nor breaks it — nothing is earned until the
-  period closes.
+- **Rollover is calculated, not typed.** The editor's "YTD $" column and the Gold Club streak are
+  derived from the stored months (`ytdTotal()`, `streakAt()`) and shown read-only. YTD sums every
+  month of the same calendar year up to and including the one on screen, including the current
+  month's earned-so-far; hovering the figure shows the month-by-month breakdown. It resets each
+  January on its own, because the year is part of the month key. For streaks, a month still in
+  progress neither counts nor breaks the run — nothing is earned until the period closes.
+  (`lastTotalBefore()` is still used by Most Improved on the display board.)
 
 ### Who can edit which month
 | | Past / closed months | The live month | Future drafts |
