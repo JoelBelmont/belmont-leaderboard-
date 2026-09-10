@@ -1,6 +1,6 @@
 # Belmont Reliability Premium Leaderboard — Project Status & Handoff
 
-_Last updated: September 1, 2026. Rewritten from the code; verify against `index.html` if in doubt._
+_Last updated: September 10, 2026. Rewritten from the code; verify against `index.html` if in doubt._
 
 This note lets anyone — Joel, or a fresh Claude Code session on another computer — pick up this
 project without the original chat history. Read this first, then open `index.html`.
@@ -63,6 +63,14 @@ A file dated before **August 31, 2026** is pre-schema-2.
 - **Gypsum team link:** https://joelbelmont.github.io/belmont-leaderboard-/?loc=gypsum-315
 - **GitHub repo:** `joelbelmont/belmont-leaderboard-` — **public**; GitHub Pages serves `index.html` at root.
 - **Supabase project ref:** `vhyfazcwhaiathwpmnez` (dashboard at supabase.com)
+
+> **If the board suddenly shows empty for everyone,** check the backend before the code. On
+> 2026-09-10 the project hostname returned NXDOMAIN on public DNS (Google and Cloudflare) —
+> consistent with the free-tier project being paused for inactivity. The page itself still loads
+> from GitHub Pages, fails the Supabase read, and falls back to a blank board. Fix: supabase.com →
+> the project → Restore. Quick check from any terminal:
+> `curl -s "https://dns.google/resolve?name=vhyfazcwhaiathwpmnez.supabase.co&type=A"` —
+> `"Status":3` means the project address is gone.
 
 > **The repo is public.** Never commit real employee names, scores, or exported board data to it.
 > Live data belongs in Supabase only. Keep backups outside the repo folder.
@@ -143,6 +151,12 @@ It is not in `GROUPS` and should not be assigned to new people.
   the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays
   aligned under Current Potential when column widths change. Follows the location toggle and the
   month arrows; omitted entirely when a location has nobody.
+- **Tie-aware podium.** Three spots. Everyone tied at an amount shares that medal and gets their
+  own bar, but ties use up spots: once three people hold medals, no further medal is awarded
+  (August: 1st Dominic $400, 2nd Aftin and Crystal $300, no bronze). A tie is never split, so a
+  tie for 3rd can put more than three people on the podium. $0 never medals. In a live month the podium reveals once the
+  leaders — tied or not — are $100 clear of the next amount, or someone hits $500; a closed month
+  always shows it.
 - **Audience-aware month badge.** The owner sees "Live — what the team sees" (they're the only one
   juggling drafts); managers and view-only visitors see "Live Month".
 - **Month history with ‹ › navigation** — see below.

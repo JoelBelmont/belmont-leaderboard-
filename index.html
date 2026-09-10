@@ -65,8 +65,8 @@
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
   .card h2{color:var(--teal);font-size:20px;margin-bottom:14px;display:flex;align-items:center;gap:9px;}
   .card h2 .ico{font-size:22px;}
-  .podium{display:flex;justify-content:center;align-items:flex-end;gap:16px;}
-  .pod{flex:1;max-width:225px;text-align:center;}
+  .podium{display:flex;justify-content:center;align-items:flex-end;gap:16px;flex-wrap:wrap;row-gap:18px;}
+  .pod{flex:1;max-width:225px;min-width:120px;text-align:center;}
   .pod .bar{border-radius:12px 12px 0 0;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:12px 8px 14px;}
   .pod .nm{font-weight:bold;font-size:18px;line-height:1.15;}
   .pod .rl{font-size:12px;opacity:.9;margin-top:2px;}
@@ -879,24 +879,32 @@ function render(){
       improved: prev ? total-prev.total : 0 });
   });
 
-  // podium — stays aspirational until past Week 1 AND someone has pulled ahead
-  const ranked=[...data].sort((a,b)=>b.total-a.total||b.goldStreak-a.goldStreak).slice(0,3);
+  // podium — three spots. Everyone tied at an amount shares that medal, so nobody who hit the same
+  // number is left off; but ties use up spots, so once three people hold medals no further medal
+  // is handed out (a tie for 2nd means no bronze). A tie is never split. $0 never medals.
+  const distinct=[...new Set(data.map(p=>p.total))].sort((a,b)=>b-a);
+  const tiers=[]; let medalled=0;
+  for(const v of distinct){
+    if(v<=0 || tiers.length===3 || medalled>=3) break;
+    const group=data.filter(p=>p.total===v).sort((a,b)=>b.goldStreak-a.goldStreak||a.name.localeCompare(b.name));
+    tiers.push(group); medalled+=group.length;
+  }
   const order=[1,0,2],medals=["&#129351;","&#129352;","&#129353;"],classes=["p1","p2","p3"],lbls=["1st","2nd","3rd"];
   const pod=document.getElementById('podium'); pod.innerHTML="";
-  const topScore=ranked.length?ranked[0].total:0;
-  const restScores=data.map(p=>p.total).sort((a,b)=>b-a).slice(1);
-  const secondScore=restScores.length?restScores[0]:0;
-  const someoneAhead = topScore>=500 || (topScore>0 && (topScore-secondScore)>=100);
+  const topScore=distinct.length?distinct[0]:0;
+  const nextScore=distinct.length>1?distinct[1]:null;       // next amount BELOW the leaders
+  // "pulled ahead" = a full $500, OR the leaders — tied or not — are clearly out front of the next amount
+  const someoneAhead = topScore>=500 || (topScore>0 && nextScore!==null && (topScore-nextScore)>=100);
   // a closed month always shows its winners; a live month stays aspirational until someone pulls ahead
-  const revealPodium = data.length>0 && (wk>=5 || (wk>=2 && someoneAhead));
+  const revealPodium = tiers.length>0 && (wk>=5 || (wk>=2 && someoneAhead));
   if(!revealPodium){
     pod.innerHTML = `<div style="text-align:center;width:100%;padding:24px 10px;">
       <div style="font-size:40px;margin-bottom:8px;">&#127942;</div>
       <div style="font-size:21px;font-weight:bold;color:var(--teal);">Three spots open. Will you be one of them?</div>
       <div style="font-size:14px;color:var(--mid);margin-top:6px;font-style:italic;">The month is still young &mdash; the podium fills in as front-runners pull ahead.</div></div>`;
   } else {
-    order.forEach(idx=>{const p=ranked[idx]; if(!p)return; const d=document.createElement('div'); d.className="pod "+classes[idx];
-      d.innerHTML=`<div class="medal">${medals[idx]}</div><div class="bar"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role)}</div><div class="amt">${fmt(p.total)}</div><div class="rank">${lbls[idx]} &middot; of $500</div></div>`; pod.appendChild(d);});
+    order.forEach(idx=>{ (tiers[idx]||[]).forEach(p=>{ const d=document.createElement('div'); d.className="pod "+classes[idx];
+      d.innerHTML=`<div class="medal">${medals[idx]}</div><div class="bar"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role)}</div><div class="amt">${fmt(p.total)}</div><div class="rank">${lbls[idx]} &middot; of $500</div></div>`; pod.appendChild(d); }); });
   }
 
   // gold club
