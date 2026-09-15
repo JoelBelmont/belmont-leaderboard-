@@ -444,12 +444,15 @@ function peopleInMonth(k){
 }
 function perfectIn(k,pid){
   const m=state.months[k], sc=m&&m.scores[pid];
-  return Array.isArray(sc) && sc.length>0 && sc.every(s=>Number(s)===100);
+  if(!Array.isArray(sc)||!sc.length) return false;
+  const person=state.people.find(x=>x.id===pid); const types=typesFor(k, person&&person.group);
+  return sc.every((s,i)=>cellVal(s,types[i])===100);
 }
 function totalIn(k,pid){
   const m=state.months[k], sc=m&&m.scores[pid];
   if(!Array.isArray(sc)) return null;
-  let t=0; sc.forEach(s=>t+=cellVal(s)); return t;
+  const person=state.people.find(x=>x.id===pid);
+  return scoreTotal(sc, typesFor(k, person&&person.group));
 }
 /* Consecutive completed perfect months ending at k. A month still in progress neither
    counts nor breaks the run — nothing is earned until the period closes. seedStreak
@@ -497,6 +500,7 @@ function createMonth(k){
   const m = { label: keyLabel(k), week: 1,
               labels: JSON.parse(JSON.stringify(src ? src.labels : DEFAULT_LABELS)),
               makeup: JSON.parse(JSON.stringify(src ? src.makeup : {})),
+              types: JSON.parse(JSON.stringify(src && src.types ? src.types : defaultTypes())),
               scores: {} };
   state.people.forEach(p=>{ m.scores[p.id]=["IP","IP","IP","IP","IP"]; });
   state.months[k]=m;
@@ -821,6 +825,8 @@ function migrate(){
     if(!m.week)  m.week=1;
     if(!m.labels) m.labels=JSON.parse(JSON.stringify(DEFAULT_LABELS));
     GROUPS.forEach(g=>{ if(!m.labels[g] || m.labels[g].length!==5) m.labels[g]=DEFAULT_LABELS[g].slice(); });
+    if(!m.types) m.types={};
+    Object.keys(ROLE_SETS).forEach(g=>{ if(!Array.isArray(m.types[g]) || m.types[g].length!==5) m.types[g]=roleSetClean(g); });
     if(!m.scores) m.scores={};
     Object.keys(m.scores).forEach(pid=>{
       const a=m.scores[pid];
@@ -846,15 +852,18 @@ const fmt=n=>"$"+(Number(n)||0).toLocaleString();
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function canEdit(p){ return userScope==="owner" || userScope===p.location; }
 
-/* normalize a raw cell to numeric earned-so-far and a status */
-function cellVal(raw){ if(raw==="IP") return 0; if(raw==="P") return 50; return Number(raw)||0; }
-function cellStatus(raw){ if(raw==="IP") return "prog"; const v=Number(raw==="P"?50:raw)||0; return v===100?"met":v===50?"part":"miss"; }
+/* metric TYPE (clean-record vs build) — stored per month, falls back to ROLE_SETS defaults */
+function roleSetClean(gk){ return (ROLE_SETS[gk]?ROLE_SETS[gk].metrics:[]).map(m=>m.type==="clean"); }
+function typesFor(k,gk){ const m=state.months&&state.months[k]; const t=m&&m.types&&m.types[gk]; return (Array.isArray(t)&&t.length===5)?t.map(v=>!!v):roleSetClean(gk); }
+function defaultTypes(){ const o={}; Object.keys(ROLE_SETS).forEach(gk=>o[gk]=roleSetClean(gk)); return o; }
+/* normalize a raw cell to numeric earned-so-far and a status. A clean-record metric that is
+   still "on track" (IP) holds its FULL value; a build metric earns up from $0. */
+function cellVal(raw, isClean){ if(raw==="IP") return isClean?100:0; if(raw==="P") return 50; return Number(raw)||0; }
+function cellStatus(raw, isClean){ if(raw==="IP") return isClean?"met":"prog"; const v=Number(raw==="P"?50:raw)||0; return v===100?"met":v===50?"part":"miss"; }
+function scoreTotal(scores, types){ let t=0; scores.forEach((s,i)=>t+=cellVal(s, types&&types[i])); return t; }
 
-function totals(p){
-  let earned=0; p.scores.forEach(s=>earned+=cellVal(s));
-  return earned;
-}
-function isPerfect(p){ return p.scores.length>0 && p.scores.every(s=>Number(s)===100); }
+function totals(p){ return scoreTotal(p.scores, typesFor(viewMonth, p.group)); }
+function isPerfect(p){ const types=typesFor(viewMonth,p.group); return p.scores.length>0 && p.scores.every((s,i)=>cellVal(s,types[i])===100); }
 
 /* ===== DISPLAY ===== */
 function render(){
@@ -939,9 +948,10 @@ function render(){
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
     set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(M.labels[gk][i])}</th>`);
     html+='<th class="c">Current Potential</th></tr>';
+    const dotTypes=typesFor(viewMonth,gk);
     members.forEach(p=>{
       html+=`<tr><td class="nm-cell">${esc(p.name)}${p.perfect?' <span style="color:var(--gold)">&#11088;</span>':''}</td>`;
-      p.scores.forEach(s=>{ const st=cellStatus(s);
+      p.scores.forEach((s,i)=>{ const st=cellStatus(s, dotTypes[i]);
         const cls=st==="met"?'d100':st==="part"?'d50':st==="miss"?'d0':'dprog';
         html+=`<td class="c"><span class="dot ${cls}"></span></td>`;});
       html+=`<td class="c tot">${fmt(p.total)} <span style="color:var(--mid);font-weight:normal;">/ $500</span></td></tr>`;
@@ -1027,10 +1037,11 @@ function buildEditor(){
 
   GROUPS.forEach(gk=>{
     const set=ROLE_SETS[gk];
+    const mtypes=typesFor(viewMonth,gk);
     const members=state.people.filter(p=>p.group===gk && Array.isArray(M.scores[p.id]));
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
-    set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><span style="font-size:9px;opacity:.8;">${m.type==="clean"?"clean-record":"building"}${m.band==="binary"?" · hit/miss":""}</span></th>`);
+    set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><select class="typesel" data-typ-g="${gk}" data-typ-i="${mi}"${locked?" disabled":""}><option value="build"${mtypes[mi]?"":" selected"}>Build ($0 up)</option><option value="clean"${mtypes[mi]?" selected":""}>Clean-record (full)</option></select>${m.band==="binary"?'<br><span style="font-size:9px;opacity:.7;">hit/miss</span>':''}</th>`);
     h+=`<th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Total earned so far in ${keyParts(viewMonth).y}, through ${esc(M.label)} — calculated, resets each January">YTD $</th><th></th><th>Log</th></tr>`;
     members.forEach(p=>{
       const editable = !locked && canEdit(p); const dis = editable ? "" : " disabled";
@@ -1043,9 +1054,10 @@ function buildEditor(){
       h+=`</select></td>`;
       set.metrics.forEach((m,si)=>{
         const raw=sc[si]; const cur = raw==="IP"?"IP":raw==="P"?"50":String(Number(raw)||0);
-        const cls = cur==="IP"?"sNA":cur==="100"?"s100":cur==="50"?"s50":"s0";
-        h+=`<td><select class="${cls}" data-p="${p.id}" data-s="${si}" onchange="recolor(this)"${dis}>
-            <option value="IP"${cur==="IP"?" selected":""}>In progress</option>
+        const isCln=!!mtypes[si];
+        const cls = cur==="IP"?(isCln?"s100":"sNA"):cur==="100"?"s100":cur==="50"?"s50":"s0";
+        h+=`<td><select class="${cls}" data-clean="${isCln?1:0}" data-p="${p.id}" data-s="${si}" onchange="recolor(this)"${dis}>
+            <option value="IP"${cur==="IP"?" selected":""}>${isCln?"On track (full)":"In progress ($0)"}</option>
             <option value="100"${cur==="100"?" selected":""}>Met</option>`;
         if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
         h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
@@ -1070,7 +1082,7 @@ function buildEditor(){
   });
   buildMakeupEditor(wrap, M, locked);
 }
-function recolor(sel){ sel.className = sel.value==="IP"?"sNA":sel.value==="100"?"s100":sel.value==="50"?"s50":"s0"; }
+function recolor(sel){ const clean=sel.dataset.clean==="1"; sel.className = sel.value==="IP"?(clean?"s100":"sNA"):sel.value==="100"?"s100":sel.value==="50"?"s50":"s0"; }
 function collectEdits(){
   const M=curMonth();
   if(!M || !canEditMonth(viewMonth)) return;      // never write into a month this user can't edit
@@ -1079,6 +1091,12 @@ function collectEdits(){
   document.querySelectorAll('#editSets input[data-lbl-g]').forEach(inp=>{
     const g=inp.dataset.lblG, i=Number(inp.dataset.lblI);
     M.labels[g][i] = (inp.value || DEFAULT_LABELS[g][i]).trim();
+  });
+  document.querySelectorAll('#editSets select[data-typ-g]').forEach(sel=>{
+    const g=sel.dataset.typG, i=Number(sel.dataset.typI);
+    if(!M.types) M.types={};
+    if(!Array.isArray(M.types[g])||M.types[g].length!==5) M.types[g]=roleSetClean(g);
+    M.types[g][i] = (sel.value==="clean");
   });
   document.querySelectorAll('#editSets input[data-f]').forEach(inp=>{
     const p=state.people.find(x=>x.id===inp.dataset.p); if(!p) return;
