@@ -180,7 +180,10 @@ It is not in `GROUPS` and should not be assigned to new people.
 - **Tie-aware podium.** Three spots. Everyone tied at an amount shares that medal and gets their
   own bar, but ties use up spots: once three people hold medals, no further medal is awarded
   (August: 1st Dominic $400, 2nd Aftin and Crystal $300, no bronze). A tie is never split, so a
-  tie for 3rd can put more than three people on the podium. $0 never medals. In a live month the podium reveals once the
+  tie for 3rd can put more than three people on the podium. $0 never medals. **Ranking is potential $
+  first, then fewest MISSED, then fewest PARTIAL** (`rankKey` in `render()`) — among people tied on
+  dollars a spotless record ranks above one with a miss, so a person carrying a miss drops below the
+  clean group and can fall off the podium. In a live month the podium reveals once the
   leaders — tied or not — are $100 clear of the next amount, or someone hits $500; a closed month
   always shows it.
 - **Audience-aware month badge.** The owner sees "Live — what the team sees" (they're the only one

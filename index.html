@@ -918,7 +918,9 @@ function render(){
   const data=visible.map(p=>{
     const total=totals(p);
     const prev=lastTotalBefore(viewMonth,p.id);
-    return Object.assign({},p,{ total, perfect:isPerfect(p),
+    const dtypes=typesFor(viewMonth,p.group); let miss=0,part=0;
+    p.scores.forEach((s,i)=>{ const st=cellStatus(s,dtypes[i]); if(st==="miss") miss++; else if(st==="part") part++; });
+    return Object.assign({},p,{ total, miss, part, perfect:isPerfect(p),
       goldStreak:streakAt(viewMonth,p.id),
       lastMonthTotal: prev?prev.total:null,
       prevKey: prev?prev.key:null,
@@ -929,10 +931,16 @@ function render(){
   // number is left off; but ties use up spots, so once three people hold medals no further medal
   // is handed out (a tie for 2nd means no bronze). A tie is never split. $0 never medals.
   const distinct=[...new Set(data.map(p=>p.total))].sort((a,b)=>b-a);
+  // Top Performers rank: potential $ first, then fewest MISSED, then fewest PARTIAL. People matching on
+  // all three share a medal step; a cleaner record breaks a dollar tie (spotless ranks above a miss).
+  const rankKey=p=>String(p.total).padStart(6,'0')+"|"+String(999-p.miss).padStart(3,'0')+"|"+String(999-p.part).padStart(3,'0');
+  const groupsMap={};
+  data.filter(p=>p.total>0).forEach(p=>{ const k=rankKey(p); (groupsMap[k]=groupsMap[k]||[]).push(p); });
+  const sortedKeys=Object.keys(groupsMap).sort((a,b)=>b.localeCompare(a));
   const tiers=[]; let medalled=0;
-  for(const v of distinct){
-    if(v<=0 || tiers.length===3 || medalled>=3) break;
-    const group=data.filter(p=>p.total===v).sort((a,b)=>b.goldStreak-a.goldStreak||a.name.localeCompare(b.name));
+  for(const k of sortedKeys){
+    if(tiers.length===3 || medalled>=3) break;
+    const group=groupsMap[k].sort((a,b)=>b.goldStreak-a.goldStreak||a.name.localeCompare(b.name));
     tiers.push(group); medalled+=group.length;
   }
   const order=[1,0,2],medals=["&#129351;","&#129352;","&#129353;"],classes=["p1","p2","p3"],lbls=["1st","2nd","3rd"];
