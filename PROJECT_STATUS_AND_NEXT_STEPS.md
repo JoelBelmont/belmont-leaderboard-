@@ -164,6 +164,14 @@ It is not in `GROUPS` and should not be assigned to new people.
   under their own month, reachable any time via "Show all history". Entries are never deleted by
   a rollover; the per-entry ✕ is the only thing that removes one. The date box pre-fills from the
   viewed month and an empty box is stored as that date, so no new entry can be undated.
+- **TV / kiosk display mode.** A "Display for TV" button (and a `?tv=1` URL param) adds `body.tv-mode`:
+  hides the gamified cards (podium, Gold Club, streaks, Most Improved), the "Making It Right" section,
+  the key/footer and the toolbar; slims the header; and enlarges the role scorecards. `fitTV()` scales
+  `#displayView` down with a CSS transform only if the content is taller than the viewport, so a whole
+  team fits on one screen at any size (a 4K TV usually needs no scaling). `enterTV()` also requests
+  fullscreen and starts a ~2-min auto-refresh (`loadState`→`render`, live-month) so a wall display
+  stays current; `exitTV()` / Esc / the ✕ button leaves. Set-and-forget link for an office TV:
+  `…/?loc=carbondale-417&tv=1` (or `gypsum-315`) — one team, big, auto-updating.
 - **Adjustable column widths**, drag-to-resize, persisted in `state.colWidths`.
 - **Team total row.** A gold summary row under the last role table showing earned vs. possible for
   the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays

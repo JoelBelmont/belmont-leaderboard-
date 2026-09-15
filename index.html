@@ -157,6 +157,40 @@
   .btn-logadd{background:var(--green);color:#fff;font-size:12px;font-weight:bold;padding:7px 14px;border-radius:6px;}
   .hidden{display:none;}
   @media print{ .toolbar,#editView{display:none;} }
+/* ===== TV / KIOSK DISPLAY MODE ===== */
+.btn-tv{ background:var(--slate); color:#fff; }
+#tvExit{ display:none; background:var(--slate); color:#fff; font-size:14px; }
+body.tv-mode{ padding:12px 24px; overflow:hidden; height:100vh; }
+body.tv-mode .toolbar,
+body.tv-mode #locToggle,
+body.tv-mode .grid > .card:not(:last-child),
+body.tv-mode .makeup,
+body.tv-mode .typekey,
+body.tv-mode .note,
+body.tv-mode .foot,
+body.tv-mode .sub,
+body.tv-mode #monthnudge,
+body.tv-mode #layoutBar,
+body.tv-mode #layoutHint,
+body.tv-mode .card.full h2{ display:none !important; }
+body.tv-mode .head{ padding:4px 0 8px; margin-bottom:8px; border-bottom-width:2px; }
+body.tv-mode .head h1{ font-size:26px; }
+body.tv-mode .locbanner{ font-size:24px; margin-top:2px; }
+body.tv-mode .monthnav{ font-size:16px; margin-top:2px; }
+body.tv-mode #wkwrap{ max-width:420px; margin-top:5px; }
+body.tv-mode .wkbar{ height:6px; }
+body.tv-mode .grid{ display:block; }
+body.tv-mode .card.full{ border:none; box-shadow:none; padding:0; background:transparent; }
+body.tv-mode #displayView{ transform-origin:top center; }
+body.tv-mode table.scores{ font-size:24px; }
+body.tv-mode table.scores th{ font-size:19px; padding:10px 12px; }
+body.tv-mode table.scores td{ padding:12px 12px; }
+body.tv-mode table.scores .tot{ font-size:22px; }
+body.tv-mode .dot{ width:26px; height:26px; }
+body.tv-mode .legend{ font-size:18px; margin-top:16px; }
+body.tv-mode .legend .dot{ width:20px; height:20px; }
+body.tv-mode #tvExit{ display:inline-block; position:fixed; top:12px; right:16px; z-index:99999; opacity:.35; }
+body.tv-mode #tvExit:hover{ opacity:1; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -180,7 +214,9 @@
   <div id="authbar" class="authbar" style="display:none;"></div>
   <button class="btn-layout" id="layoutBtn" onclick="toggleLayout()">&#8596; Adjust layout</button>
   <button class="btn-edit" id="toggleBtn" onclick="toggleEdit()">&#9998; Edit scores</button>
+  <button class="btn-tv" id="tvBtn" onclick="enterTV()">&#128250; Display for TV</button>
 </div>
+<button id="tvExit" onclick="exitTV()">&#10005; Exit TV</button>
 
 <!-- ============ DISPLAY ============ -->
 <div id="displayView">
@@ -972,6 +1008,7 @@ function render(){
     rs.appendChild(tt);
   }
   renderMakeup(M);
+  fitTV();
 }
 function shortName(n){ // shorten long metric labels for column headers
   return n.replace("Attendance & Punctuality","Attendance").replace("Jobsite Documentation","Jobsite Docs")
@@ -980,6 +1017,34 @@ function shortName(n){ // shorten long metric labels for column headers
           .replace("Collections $260k/mo min","Collections").replace("10 Drop-offs/week","Drop-offs")
           .replace("80% Estimates Converted","Conversion").replace("Van Clean + Reset","Van Reset");
 }
+
+/* ===== TV / KIOSK DISPLAY MODE ===== */
+let tvTimer=null;
+function fitTV(){
+  if(!document.body.classList.contains('tv-mode')) return;
+  const dv=document.getElementById('displayView'); if(!dv) return;
+  dv.style.transformOrigin='top center'; dv.style.transform='none';
+  const head=document.querySelector('.head'); const headH=head?head.getBoundingClientRect().height:0;
+  const availH=window.innerHeight-headH-24, availW=window.innerWidth-24;
+  const ch=dv.scrollHeight, cw=dv.scrollWidth; if(ch<=0||cw<=0) return;
+  const scale=Math.min(1, availH/ch, availW/cw);
+  dv.style.transform='scale('+scale+')';
+}
+function enterTV(){
+  document.body.classList.add('tv-mode');
+  try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
+  render();
+  if(!tvTimer && CLOUD){ tvTimer=setInterval(async()=>{ try{ await loadState(); viewMonth=state.current; resolveView(); buildMonthNav(); render(); }catch(e){} }, 120000); }
+}
+function exitTV(){
+  document.body.classList.remove('tv-mode');
+  if(tvTimer){ clearInterval(tvTimer); tvTimer=null; }
+  try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
+  const dv=document.getElementById('displayView'); if(dv) dv.style.transform='none';
+  render();
+}
+window.addEventListener('resize', ()=>{ if(document.body.classList.contains('tv-mode')) fitTV(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('tv-mode')) exitTV(); });
 
 /* ===== LOCATION VIEW (per-team boards + owner toggle) ===== */
 function resolveView(){
@@ -1268,6 +1333,7 @@ function resetWidths(){
   updateAuthBar();
   buildMonthNav();
   render();
+  if(new URLSearchParams(location.search).get('tv')==='1') enterTV();
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
     sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
   }
