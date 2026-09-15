@@ -472,7 +472,8 @@ function streakAt(k,pid){
    Resets automatically each January, because the year is part of the month key. */
 function ytdMonths(k){
   const y=keyParts(k).y;
-  return monthKeys().filter(x=>x<=k && keyParts(x).y===y);
+  // "paid out" = completed months this year, EXCLUDING the current in-progress live month
+  return monthKeys().filter(x=>x<=k && keyParts(x).y===y && (x<state.current || isComplete(state.months[x])));
 }
 function ytdTotal(pid,k){
   let sum=0;
@@ -1042,7 +1043,7 @@ function buildEditor(){
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
     set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><select class="typesel" data-typ-g="${gk}" data-typ-i="${mi}"${locked?" disabled":""}><option value="build"${mtypes[mi]?"":" selected"}>Build ($0 up)</option><option value="clean"${mtypes[mi]?" selected":""}>Clean-record (full)</option></select>${m.band==="binary"?'<br><span style="font-size:9px;opacity:.7;">hit/miss</span>':''}</th>`);
-    h+=`<th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Total earned so far in ${keyParts(viewMonth).y}, through ${esc(M.label)} — calculated, resets each January">YTD $</th><th></th><th>Log</th></tr>`;
+    h+=`<th class="c" title="Live total for ${esc(M.label)} — still changing until the month closes">This month</th><th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Bonuses from completed, paid-out months this year — excludes ${esc(M.label)} while it is still in progress">YTD paid</th><th></th><th>Log</th></tr>`;
     members.forEach(p=>{
       const editable = !locked && canEdit(p); const dis = editable ? "" : " disabled";
       const lockNote = editable ? "" : ` title="${esc(locked ? M.label+" is read-only" : (LOCATIONS[p.location]||p.location)+" — outside your edit access")}"`;
@@ -1062,7 +1063,8 @@ function buildEditor(){
         if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
         h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
       });
-      h+=`<td>${isEarliest
+      h+=`<td class="c"><span style="font-weight:bold;color:var(--teal);">${fmt(totalIn(viewMonth,p.id)||0)}</span></td>
+          <td>${isEarliest
             ? `<input class="num" data-f="seedStreak" data-p="${p.id}" type="number" min="0" value="${Number(p.seedStreak)||0}"${dis}>`
             : `<span class="calc">${streakAt(viewMonth,p.id)}</span>`}</td>
           <td><span class="calc" title="${esc(ytdBreakdown(p.id,viewMonth))}">${fmt(ytdTotal(p.id,viewMonth))}</span></td>

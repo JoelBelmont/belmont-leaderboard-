@@ -1,6 +1,6 @@
 # Belmont Reliability Premium Leaderboard — Project Status & Handoff
 
-_Last updated: September 10, 2026. Rewritten from the code; verify against `index.html` if in doubt._
+_Last updated: September 15, 2026. Rewritten from the code; verify against `index.html` if in doubt._
 
 This note lets anyone — Joel, or a fresh Claude Code session on another computer — pick up this
 project without the original chat history. Read this first, then open `index.html`.
@@ -94,7 +94,7 @@ state = {
   schema: 2,
   people: [ {id, name, role, group, location, seedStreak} ],       // roster only, no scores
   months: {
-    "2026-08": { label, week, labels, makeup, scores:{ personId:[5] } },
+    "2026-08": { label, week, labels, makeup, types:{ group:[5 booleans] }, scores:{ personId:[5] } },
     "2026-09": { ... }
   },
   current: "2026-09",        // the LIVE month the team's links land on
@@ -105,6 +105,15 @@ state = {
 Scores, metric names and makeup rules live **inside a month**, so changing September never
 rewrites August. `week` is 1–4, or 5 = "Month complete". `seedStreak` is a per-person carry-in
 for perfect months earned before this board existed — it is editable only on the earliest month.
+
+`types` is a per-month, per-group array of 5 booleans (true = **clean-record**, false = **build**),
+editable in the Edit view and seeded from `ROLE_SETS` defaults by `migrate()`/`createMonth()`.
+It drives scoring: `cellVal(raw, isClean)` gives a clean-record metric its **full value while it's
+"on track" (IP)** — you start holding it and only lose it if marked Partial/Missed — whereas a build
+metric earns up from $0. `typesFor(k,gk)` reads the month's types (falling back to `ROLE_SETS`);
+`scoreTotal()`, `totals()`, `totalIn()`, `isPerfect()`, `perfectIn()` and the board dots
+(`cellStatus`) all go through it. A completed month has explicit marks (no IP), so recomputing past
+months under this rule leaves their totals unchanged — archives stay accurate.
 
 `migrate()` runs on every load. It is **additive only** — it seeds missing fields and never
 touches existing people or scores. It also upgrades a schema-1 board in place: the old flat
@@ -130,9 +139,18 @@ It is not in `GROUPS` and should not be assigned to new people.
 - **Locations (Phase 1).** Obscured per-team links, managers auto-land on their own board,
   owner gets the toggle. Podium, Gold Club, streaks and Most Improved all compute per-team.
   See `resolveView()`, `buildLocToggle()`, and the filter in `render()`.
-- **Editable metric names.** The five column labels per role group are editable in the Edit view
-  and stored per month in `months[k].labels`. (The metric *definitions* in `ROLE_SETS` — type and
-  band — are still hard-coded. Only the display name is editable.)
+- **Editable metric names + types.** The five column labels per role group are editable in the Edit
+  view and stored per month in `months[k].labels`. Each metric's **type (Build vs Clean-record) is
+  also editable** per metric, stored in `months[k].types` (see Data model → `types`, and the
+  scoring paragraph). The *band* (tiered vs hit/miss) is still hard-coded in `ROLE_SETS`.
+- **Clean-record scoring (mixed model).** Clean-record metrics start each month at their full value
+  ("on track") and are lost only if marked Partial/Missed; build metrics earn up from $0. So a
+  reliable person opens the month at the sum of their clean-record metrics, not $0. Which metrics are
+  clean is the editable `types` above. On-track clean metrics show a green dot.
+- **Editor clarity: "This month" vs "YTD paid".** The Edit view shows each person's live month total
+  ("This month", teal) separately from **"YTD paid"**, which sums only completed, paid-out months of
+  the year and **excludes the in-progress live month** (`ytdMonths()` filters to `x < state.current
+  || isComplete`). Keeps the fluctuating current number from being mistaken for banked earnings.
 - **Self-updating "Making It Right" (was Phase 2 item 2).** `buildMakeupEditor()` gives one row
   per distinct metric: can't be made up / back to $50 / back to $100, plus the note shown on the
   board. `renderMakeup(M)` rebuilds the two lists from that month's `makeup`, and
