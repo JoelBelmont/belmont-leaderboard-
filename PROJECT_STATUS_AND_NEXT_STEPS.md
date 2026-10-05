@@ -182,7 +182,9 @@ It is not in `GROUPS` and should not be assigned to new people.
   "Hide summary" toggle lets you present off the cuff. Runs on the current viewLoc + viewMonth.
   Keyboard: ←/→/space navigate, Esc exits. Celebrations fire by tier as each person appears — $300
   small, $400 bigger, $500 biggest — vanilla-canvas confetti (`confettiBurst`) + Web-Audio
-  chime/fanfare (`playCelebration`, audio unlocked on the launch click). Chrome hidden via `body.review-mode`.
+  sounds (`playCelebration` → `celebrate300` Grand Fanfare / `celebrate400` Victory Jingle / `celebrate500`
+  extended Chime-Cascade finale; audio unlocked on the launch click; a 2nd confetti burst fires mid-$500
+  finale). Chrome hidden via `body.review-mode`.
 - **Adjustable column widths**, drag-to-resize, persisted in `state.colWidths`.
 - **Team total row.** A gold summary row under the last role table showing earned vs. possible for
   the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays

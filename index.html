@@ -1098,29 +1098,54 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.c
 /* ===== MONTH IN REVIEW MODE ===== */
 let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true;
 function canReviewEdit(){ return userScope==="owner" || userScope===viewLoc; }
+// deterministic "random" so lines stay put on re-render but vary by person + month
+function hashStr(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h; }
+const WIN_LINES=[
+  l=>`${l} — nailed it.`, l=>`${l} — rock solid.`, l=>`${l} — that's how it's done.`,
+  l=>`${l} — consistent and dependable.`, l=>`${l} — strong all month.`,
+  l=>`${l} — exactly what we look for.`, l=>`${l} — money in the bank.`,
+  l=>`${l} — kept it clean.`, l=>`${l} — way to show up.`, l=>`${l} — dialed in.`,
+  l=>`${l} — no notes, just great.`, l=>`${l} — crushed it.` ];
+const GO_LINES=[
+  l=>`Let's build the habit on ${l} — the first few are the hardest, then it clicks.`,
+  l=>`${l} is one of those that quietly makes everything else easier — worth the focus.`,
+  l=>`Even knocking out ${l} once early gets the momentum going.`,
+  l=>`I've seen you handle tougher — ${l} is well within reach.`,
+  l=>`Let's make ${l} the one to conquer this month.`,
+  l=>`New month, clean slate — ${l} is a great place to plant a flag.`,
+  l=>`A simple routine around ${l} and it starts to take care of itself.`,
+  l=>`You're close on a lot — ${l} is the finishing touch.`,
+  l=>`Picture next month's board with ${l} green. Let's make that happen.`,
+  l=>`${l} is the next rung on the ladder — let's grab it.`,
+  l=>`Small, steady effort on ${l} and it'll come — no pressure.`,
+  l=>`What would help you stay on top of ${l}? Let's sort that out together.`,
+  l=>`Keep ${l} front and center this month and watch it move.`,
+  l=>`${l} is right in your wheelhouse — go claim it.` ];
+const CLOSE_LINES=[
+  l=>`So close on ${l} — just a bit more gets you all the way.`,
+  l=>`Great progress on ${l} — let's carry it over the line.`,
+  l=>`${l} is almost there; the hard part's behind you.`,
+  l=>`You're right on the edge with ${l} — finish strong.`,
+  l=>`Nearly full credit on ${l} — one more push does it.` ];
+const NOWIN_LINES=[ `Let's get a few wins on the board this month — one good habit starts it all.`,
+                    `Fresh month, open field — let's rack up some wins together.` ];
+const ALLGOOD_LINES=[ `Clean sweep — every metric on track. Phenomenal.`,
+                      `Not a thing to fix — flawless month. Keep it rolling.` ];
 function autoDraft(p, M){
   const types=typesFor(viewMonth,p.group), labels=M.labels[p.group]||[], sc=M.scores[p.id]||[];
-  // Warm, coach-style one-liners (one per metric). The "improve" lines encourage the task itself
-  // rather than labelling it "missed" — and they vary so a run of them never reads canned.
-  const WIN=[ l=>`${l} — nailed it.`, l=>`${l} — strong work, keep it rolling.`,
-              l=>`${l} — way to show up here.`, l=>`${l} — right on track.`, l=>`${l} — earned, nice.` ];
-  const GO =[ l=>`Let's make ${l} a focus this month — it's very doable.`,
-              l=>`${l} is a great one to go after next — you've got this.`,
-              l=>`A little consistency on ${l} and it's yours.`,
-              l=>`Let's build the habit on ${l} — it adds up fast.`,
-              l=>`${l} is right within reach — let's lock it in.`,
-              l=>`Go after ${l} this month — small steps, big payoff.` ];
-  const CLOSE=[ l=>`So close on ${l} — let's finish it off and grab full credit.`,
-                l=>`Good start on ${l} — a little more and it's all yours.` ];
-  const wins=[], improve=[];
+  const wins=[], improve=[], used={win:new Set(),go:new Set(),close:new Set()};
+  // start at the hashed index, then probe to the next unused one so no line repeats within a person's list
+  const pickIdx=(len,h,key)=>{ const u=used[key]; let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
   sc.forEach((s,i)=>{
     const st=cellStatus(s,types[i]), lbl=labels[i]||("Metric "+(i+1));
-    if(st==="met") wins.push(WIN[wins.length % WIN.length](lbl));
-    else if(st==="part") improve.push(CLOSE[improve.length % CLOSE.length](lbl));
-    else improve.push(GO[improve.length % GO.length](lbl));   // missed or not-yet-earned → encourage it
+    const h=hashStr((p.id||p.name||"")+"|"+i+"|"+viewMonth);   // stable per person+metric+month, spread across the set
+    if(st==="met") wins.push(WIN_LINES[pickIdx(WIN_LINES.length,h,'win')](lbl));
+    else if(st==="part") improve.push(CLOSE_LINES[pickIdx(CLOSE_LINES.length,h,'close')](lbl));
+    else improve.push(GO_LINES[pickIdx(GO_LINES.length,h,'go')](lbl));   // missed or not-yet-earned → encourage the task
   });
-  return { wins: wins.length ? wins.join("\n") : "Let's put some wins on the board this month — you've got this.",
-           improve: improve.length ? improve.join("\n") : "Clean sweep — every metric on track. Keep it up!" };
+  const hp=hashStr((p.id||p.name||"")+"|"+viewMonth);
+  return { wins: wins.length ? wins.join("\n") : NOWIN_LINES[hp % NOWIN_LINES.length],
+           improve: improve.length ? improve.join("\n") : ALLGOOD_LINES[hp % ALLGOOD_LINES.length] };
 }
 function reviewText(p, M){
   const stored=(M.review&&M.review[p.id])||null, draft=autoDraft(p,M);
@@ -1206,10 +1231,11 @@ function maybeCelebrate(){
   const tier = p.total>=500?3 : p.total>=400?2 : p.total>=300?1 : 0;
   if(!tier) return;
   confettiBurst(tier); playCelebration(tier);
+  if(tier===3) setTimeout(()=>confettiBurst(3), 2800);   // second burst for the extended $500 finale
   const b=document.createElement('div'); b.className='rv-celebrate t'+tier;
   b.innerHTML = tier===3?'&#127881; $500 — PERFECT MONTH! &#127881;' : tier===2?'&#127881; $400! &#127881;' : '&#127881; $300!';
   document.getElementById('reviewView').appendChild(b);
-  setTimeout(()=>b.remove(), tier===3?4200:tier===2?3000:2200);
+  setTimeout(()=>b.remove(), tier===3?5500:tier===2?3000:2200);
 }
 document.addEventListener('keydown', e=>{
   if(!reviewMode) return;
@@ -1248,24 +1274,59 @@ function confettiStep(){
   if(confettiParticles.length) confettiRAF=requestAnimationFrame(confettiStep);
   else { confettiRAF=null; c.clearRect(0,0,cv.width,cv.height); }
 }
-let audioCtx=null;
-function unlockAudio(){ try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} }
-function tone(freq, start, dur, type, vol){
-  if(!audioCtx) return;
-  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.type=type||'triangle'; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
-  const t0=audioCtx.currentTime+start;
-  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol||0.2,t0+0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
-  o.start(t0); o.stop(t0+dur+0.03);
+let AC=null, MG=null;
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC; }
+function unlockAudio(){ try{ ac(); }catch(e){} }
+function masterGain(){ const a=ac(); if(!MG){ MG=a.createGain(); MG.gain.value=0.7; MG.connect(a.destination); } return MG; }
+function voice(freq,t,dur,type,vol){
+  const a=ac(), o=a.createOscillator(), g=a.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(masterGain());
+  const t0=a.currentTime+t; g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.start(t0); o.stop(t0+dur+0.05);
+}
+function chord(fs,t,dur,type,vol){ fs.forEach(f=>voice(f,t,dur,type,vol)); }
+function sparkleUp(t,base,n,vol){ for(let i=0;i<n;i++) voice(base*Math.pow(1.12,i), t+i*0.05, 0.25,'sine',vol); }
+function sparkleDown(t,base,n,vol){ for(let i=0;i<n;i++) voice(base/Math.pow(1.1,i), t+i*0.05, 0.3,'sine',vol); }
+function noiseHit(t,dur,vol,hp){
+  const a=ac(), n=Math.floor(a.sampleRate*dur), buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const g=a.createGain(), f=a.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp||3000;
+  src.connect(f); f.connect(g); g.connect(masterGain());
+  const t0=a.currentTime+t; g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  src.start(t0); src.stop(t0+dur+0.02);
+}
+/* $300 = Grand Fanfare */
+function celebrate300(){
+  [[392,0,0.15],[523.25,0.17,0.15],[659.25,0.34,0.15],[783.99,0.52,0.55]].forEach(([f,t,d])=>voice(f,t,d,'sawtooth',0.17));
+  const t=0.52; chord([261.63,523.25,659.25,783.99],t,1.0,'sawtooth',0.12); noiseHit(t,0.5,0.22,4000);
+}
+/* $400 = Victory Jingle */
+function celebrate400(){
+  const mel=[[523.25,0,0.14],[659.25,0.14,0.14],[783.99,0.28,0.14],[1046.5,0.42,0.22],[880,0.66,0.14],[987.77,0.8,0.14],[1046.5,0.94,0.6]];
+  mel.forEach(([f,t,d])=>voice(f,t,d,'triangle',0.22));
+  voice(130.81,0,1.0,'sine',0.2); voice(196,0.42,0.6,'sine',0.16);
+  const tf=0.94; chord([523.25,659.25,783.99,1046.5],tf,0.9,'triangle',0.12);
+  mel.forEach(([f,t,d])=>voice(f*0.8,t,d,'triangle',0.08)); sparkleUp(tf+0.1,1318.5,6,0.07);
+}
+/* $500 = Chime Cascade, extended into a long triumphant finale for the top prize */
+function celebrate500(){
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>voice(f,i*0.1,0.32,'triangle',0.22));
+  let t=0.4; chord([523.25,659.25,783.99],t,0.75,'triangle',0.15); sparkleUp(t+0.1,1046.5,5,0.08);
+  voice(130.81,t,1.0,'sine',0.26); chord([1046.5,1318.5],t,0.8,'triangle',0.1); sparkleUp(t+0.2,1318.5,6,0.07);
+  let t2=t+0.7; [1046.5,1318.5,1567.98,2093].forEach((f,i)=>voice(f,t2+i*0.07,0.4,'sine',0.1));
+  chord([523.25,659.25,783.99,1046.5],t2,1.2,'triangle',0.13); voice(130.81,t2,1.4,'sine',0.22);
+  let t3=t2+1.1; [392,523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>voice(f,t3+i*0.1,0.35,'triangle',0.2));  // triumphant climb
+  let t4=t3+0.7;
+  chord([261.63,523.25,659.25,783.99,1046.5,1318.5],t4,1.9,'triangle',0.13);   // big sustained chord
+  voice(130.81,t4,2.1,'sine',0.24);                                            // deep bass
+  noiseHit(t4,0.7,0.14,3000);                                                  // cymbal swell
+  sparkleDown(t4+0.3,2637,12,0.08); sparkleUp(t4+0.3,1046.5,10,0.06);          // long glittering tail
 }
 function playCelebration(tier){
-  unlockAudio(); if(!audioCtx) return;
-  const asc=[523.25,659.25,783.99,1046.5];               // C E G C
-  const notes = tier===1?asc.slice(0,3):asc;
-  notes.forEach((f,i)=> tone(f, i*0.12, 0.30, 'triangle', 0.22));
-  if(tier>=2){ const t=notes.length*0.12; [523.25,659.25,783.99].forEach(f=> tone(f, t, 0.6, 'triangle', 0.18)); }
-  if(tier>=3){ const t=notes.length*0.12+0.5; [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=> tone(f, t+i*0.08, 0.8, 'sawtooth', 0.14)); }
+  unlockAudio(); if(!AC) return;
+  if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300();
 }
 
 /* ===== LOCATION VIEW (per-team boards + owner toggle) ===== */
