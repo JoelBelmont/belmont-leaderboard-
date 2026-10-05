@@ -217,7 +217,11 @@ body.review-mode .toolbar{ display:none !important; }
 .rv-imp{ background:#f6efe9; border:1px solid #c9a48f; }
 .rv-sumhd{ font-weight:bold; font-size:18px; margin-bottom:6px; }
 .rv-wins .rv-sumhd{ color:var(--green); } .rv-imp .rv-sumhd{ color:#9c4636; }
-.rv-sumtxt{ font-size:20px; line-height:1.45; color:var(--slate); white-space:pre-wrap; }
+.rv-sumtxt{ font-size:20px; line-height:1.45; color:var(--slate); }
+.rv-li{ position:relative; padding-left:22px; margin-bottom:9px; }
+.rv-li:last-child{ margin-bottom:0; }
+.rv-li:before{ content:"•"; position:absolute; left:4px; top:0; color:var(--mid); font-weight:bold; }
+.rv-m{ font-weight:bold; text-decoration:underline; text-underline-offset:2px; }
 .rv-edit{ width:100%; min-height:96px; font-family:inherit; font-size:17px; padding:9px; border:1px solid var(--line); border-radius:8px; }
 .rv-editbtn{ margin-top:10px; font-size:14px; background:var(--teal); color:#fff; }
 .rv-value{ margin:20px auto 0; max-width:900px; background:#faf1dd; border:1px solid var(--gold); border-radius:14px; padding:15px 24px; font-size:19px; line-height:1.4; color:var(--teal); }
@@ -1279,6 +1283,16 @@ function autoDraft(p, M){
   return { wins: wins.length ? wins.join("\n") : NOWIN_LINES[hp % NOWIN_LINES.length],
            improve: improve.length ? improve.join("\n") : ALLGOOD_LINES[hp % ALLGOOD_LINES.length], value };
 }
+// display-only: bullet each line and underline+bold the metric label within it (stored text stays plain)
+function styleSummary(text, labels){
+  return String(text||"").split("\n").map(line=>{
+    let h=esc(line);
+    (labels||[]).slice().filter(Boolean).sort((a,b)=>b.length-a.length).forEach(lb=>{
+      const e=esc(lb); if(e && h.indexOf(e)>=0) h=h.split(e).join('<u class="rv-m">'+e+'</u>');
+    });
+    return '<div class="rv-li">'+h+'</div>';
+  }).join('');
+}
 function reviewText(p, M){
   const stored=(M.review&&M.review[p.id])||null, draft=autoDraft(p,M);
   return { wins:(stored&&stored.wins!=null)?stored.wins:draft.wins,
@@ -1310,8 +1324,8 @@ function renderReview(){
       <div class="rv-bar"><div class="rv-barfill" style="width:${Math.min(100,p.total/500*100)}%"></div></div>
       <div class="rv-metrics">${dots}</div>
       <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
-        <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${esc(rv.improve)}</div></div>
-        <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${esc(rv.wins)}</div></div>
+        <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${styleSummary(rv.improve,labels)}</div></div>
+        <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${styleSummary(rv.wins,labels)}</div></div>
       </div>
       ${(rv.value && reviewShowSummary)?`<div class="rv-value">&#128142; <b>${esc(rv.value.name)} in action</b> &mdash; ${esc(rv.value.line)}</div>`:''}
       ${(reviewShowSummary&&canReviewEdit())?`<button class="rv-editbtn" onclick="reviewEdit()">&#9998; Edit summary</button>`:''}
