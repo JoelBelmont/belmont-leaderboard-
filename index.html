@@ -191,6 +191,42 @@ body.tv-mode .legend{ font-size:18px; margin-top:16px; }
 body.tv-mode .legend .dot{ width:20px; height:20px; }
 body.tv-mode #tvExit{ display:inline-block; position:fixed; top:12px; right:16px; z-index:99999; opacity:.35; }
 body.tv-mode #tvExit:hover{ opacity:1; }
+/* ===== MONTH IN REVIEW MODE ===== */
+.btn-review{ background:var(--gold); color:#fff; }
+body.review-mode{ overflow:hidden; }
+body.review-mode .head,
+body.review-mode #locToggle,
+body.review-mode .toolbar{ display:none !important; }
+#reviewView:not(.hidden){ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:24px 20px; text-align:center; }
+#rvExit{ position:fixed; top:12px; right:16px; z-index:60; background:var(--slate); color:#fff; font-size:14px; opacity:.5; }
+#rvExit:hover{ opacity:1; }
+.rv-prog{ font-size:18px; color:var(--mid); margin-bottom:14px; letter-spacing:.5px; }
+.rv-card{ background:#fff; border:1px solid var(--line); border-radius:22px; padding:30px 48px 36px; box-shadow:0 2px 18px rgba(0,0,0,.06); max-width:1040px; width:94%; }
+.rv-name{ font-size:58px; font-weight:bold; color:var(--teal); line-height:1.04; }
+.rv-role{ font-size:24px; color:var(--mid); margin-top:4px; }
+.rv-total{ font-size:76px; font-weight:bold; color:var(--gold); margin:16px 0 8px; line-height:1; }
+.rv-of{ font-size:30px; color:var(--mid); }
+.rv-bar{ height:14px; background:var(--line); border-radius:8px; overflow:hidden; max-width:540px; margin:0 auto 26px; }
+.rv-barfill{ height:100%; background:linear-gradient(90deg,var(--lteal),var(--gold)); border-radius:8px; }
+.rv-metrics{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px 28px; margin-bottom:26px; }
+.rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); }
+.rv-metric .dot{ width:22px; height:22px; }
+.rv-summary{ display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+.rv-sum{ flex:1 1 320px; min-width:280px; max-width:460px; border-radius:14px; padding:16px 22px; text-align:left; }
+.rv-wins{ background:#eef5ef; border:1px solid var(--green); }
+.rv-imp{ background:#f6efe9; border:1px solid #c9a48f; }
+.rv-sumhd{ font-weight:bold; font-size:18px; margin-bottom:6px; }
+.rv-wins .rv-sumhd{ color:var(--green); } .rv-imp .rv-sumhd{ color:#9c4636; }
+.rv-sumtxt{ font-size:20px; line-height:1.45; color:var(--slate); white-space:pre-wrap; }
+.rv-edit{ width:100%; min-height:96px; font-family:inherit; font-size:17px; padding:9px; border:1px solid var(--line); border-radius:8px; }
+.rv-editbtn{ margin-top:10px; font-size:14px; background:var(--teal); color:#fff; }
+.rv-nav{ display:flex; gap:16px; justify-content:center; align-items:center; margin-top:28px; flex-wrap:wrap; }
+.rv-nav button{ font-size:20px; padding:14px 32px; background:var(--teal); color:#fff; }
+.rv-nav button:disabled{ opacity:.35; cursor:default; }
+.rv-nav .rv-toggle{ background:#fff; color:var(--teal); border:1.5px solid var(--teal); }
+.rv-celebrate{ position:fixed; top:13%; left:50%; transform:translateX(-50%); z-index:100001; font-weight:bold; color:var(--gold); background:rgba(255,255,255,.92); border-radius:40px; padding:14px 42px; box-shadow:0 4px 26px rgba(0,0,0,.16); animation:rvpop .5s ease; }
+.rv-celebrate.t1{ font-size:34px; } .rv-celebrate.t2{ font-size:48px; } .rv-celebrate.t3{ font-size:62px; color:#b07f33; }
+@keyframes rvpop{ 0%{transform:translateX(-50%) scale(.3);opacity:0;} 60%{transform:translateX(-50%) scale(1.15);opacity:1;} 100%{transform:translateX(-50%) scale(1);} }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -215,8 +251,10 @@ body.tv-mode #tvExit:hover{ opacity:1; }
   <button class="btn-layout" id="layoutBtn" onclick="toggleLayout()">&#8596; Adjust layout</button>
   <button class="btn-edit" id="toggleBtn" onclick="toggleEdit()">&#9998; Edit scores</button>
   <button class="btn-tv" id="tvBtn" onclick="enterTV()">&#128250; Display for TV</button>
+  <button class="btn-review" id="reviewBtn" onclick="enterReview()">&#127916; Month in Review</button>
 </div>
 <button id="tvExit" onclick="exitTV()">&#10005; Exit TV</button>
+<div id="reviewView" class="hidden"></div>
 
 <!-- ============ DISPLAY ============ -->
 <div id="displayView">
@@ -636,6 +674,8 @@ function syncEditBtn(){
   if(tb && !editing) tb.style.display = canEditMonth(viewMonth) ? "" : "none";
   const lb=document.getElementById('layoutBtn');
   if(lb) lb.style.display = (userScope==="viewer") ? "none" : "";
+  const rb=document.getElementById('reviewBtn');
+  if(rb) rb.style.display = (userScope==="viewer") ? "none" : "";
 }
 
 function distinctLabels(M){
@@ -870,6 +910,7 @@ function migrate(){
       if(!Array.isArray(a) || a.length!==5) m.scores[pid]=["IP","IP","IP","IP","IP"];
       if(!state.people.some(p=>p.id===pid)) delete m.scores[pid];   // orphaned score row
     });
+    if(!m.review) m.review={};
     ensureMakeup(m);
   });
   if(!Array.isArray(state.colWidths) || state.colWidths.length!==7) state.colWidths = DEFAULT_WIDTHS.slice();
@@ -1053,6 +1094,179 @@ function exitTV(){
 }
 window.addEventListener('resize', ()=>{ if(document.body.classList.contains('tv-mode')) fitTV(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('tv-mode')) exitTV(); });
+
+/* ===== MONTH IN REVIEW MODE ===== */
+let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true;
+function canReviewEdit(){ return userScope==="owner" || userScope===viewLoc; }
+function autoDraft(p, M){
+  const types=typesFor(viewMonth,p.group), labels=M.labels[p.group]||[], sc=M.scores[p.id]||[];
+  // Warm, coach-style one-liners (one per metric). The "improve" lines encourage the task itself
+  // rather than labelling it "missed" — and they vary so a run of them never reads canned.
+  const WIN=[ l=>`${l} — nailed it.`, l=>`${l} — strong work, keep it rolling.`,
+              l=>`${l} — way to show up here.`, l=>`${l} — right on track.`, l=>`${l} — earned, nice.` ];
+  const GO =[ l=>`Let's make ${l} a focus this month — it's very doable.`,
+              l=>`${l} is a great one to go after next — you've got this.`,
+              l=>`A little consistency on ${l} and it's yours.`,
+              l=>`Let's build the habit on ${l} — it adds up fast.`,
+              l=>`${l} is right within reach — let's lock it in.`,
+              l=>`Go after ${l} this month — small steps, big payoff.` ];
+  const CLOSE=[ l=>`So close on ${l} — let's finish it off and grab full credit.`,
+                l=>`Good start on ${l} — a little more and it's all yours.` ];
+  const wins=[], improve=[];
+  sc.forEach((s,i)=>{
+    const st=cellStatus(s,types[i]), lbl=labels[i]||("Metric "+(i+1));
+    if(st==="met") wins.push(WIN[wins.length % WIN.length](lbl));
+    else if(st==="part") improve.push(CLOSE[improve.length % CLOSE.length](lbl));
+    else improve.push(GO[improve.length % GO.length](lbl));   // missed or not-yet-earned → encourage it
+  });
+  return { wins: wins.length ? wins.join("\n") : "Let's put some wins on the board this month — you've got this.",
+           improve: improve.length ? improve.join("\n") : "Clean sweep — every metric on track. Keep it up!" };
+}
+function reviewText(p, M){
+  const stored=(M.review&&M.review[p.id])||null, draft=autoDraft(p,M);
+  return { wins:(stored&&stored.wins!=null)?stored.wins:draft.wins,
+           improve:(stored&&stored.improve!=null)?stored.improve:draft.improve };
+}
+function buildReviewOrder(){
+  const list=peopleInMonth(viewMonth).filter(p=>p.location===viewLoc).map(p=>{
+    const types=typesFor(viewMonth,p.group); let miss=0,part=0;
+    p.scores.forEach((s,i)=>{ const st=cellStatus(s,types[i]); if(st==="miss")miss++; else if(st==="part")part++; });
+    return Object.assign({},p,{ total:totals(p), miss, part });
+  });
+  list.sort((a,b)=> a.total-b.total || b.miss-a.miss || b.part-a.part || a.name.localeCompare(b.name));
+  return list;   // least performer first, builds up to the best
+}
+function renderReview(){
+  const M=curMonth(); if(!M) return;
+  const p=reviewOrder[reviewIdx]; if(!p) return;
+  const types=typesFor(viewMonth,p.group), labels=M.labels[p.group]||[], rv=reviewText(p,M);
+  let dots='';
+  p.scores.forEach((s,i)=>{ const st=cellStatus(s,types[i]); const cls=st==="met"?'d100':st==="part"?'d50':st==="miss"?'d0':'dprog';
+    dots+=`<div class="rv-metric"><span class="dot ${cls}"></span><span>${esc(labels[i]||'')}</span></div>`; });
+  const el=document.getElementById('reviewView');
+  el.innerHTML = `<button id="rvExit" onclick="exitReview()">&#10005; Exit review</button>
+    <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(M.label)}</div>
+    <div class="rv-card">
+      <div class="rv-name">${esc(p.name)}</div>
+      <div class="rv-role">${esc(p.role)}</div>
+      <div class="rv-total">${fmt(p.total)} <span class="rv-of">/ $500</span></div>
+      <div class="rv-bar"><div class="rv-barfill" style="width:${Math.min(100,p.total/500*100)}%"></div></div>
+      <div class="rv-metrics">${dots}</div>
+      <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
+        <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${esc(rv.improve)}</div></div>
+        <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${esc(rv.wins)}</div></div>
+      </div>
+      ${(reviewShowSummary&&canReviewEdit())?`<button class="rv-editbtn" onclick="reviewEdit()">&#9998; Edit summary</button>`:''}
+    </div>
+    <div class="rv-nav">
+      <button onclick="reviewPrev()" ${reviewIdx===0?'disabled':''}>&lsaquo; Previous</button>
+      <button class="rv-toggle" onclick="reviewToggleSummary()">${reviewShowSummary?'Hide summary':'Show summary'}</button>
+      <button onclick="reviewNext()" ${reviewIdx>=reviewOrder.length-1?'disabled':''}>Next &rsaquo;</button>
+    </div>`;
+}
+function reviewEdit(){
+  const p=reviewOrder[reviewIdx], M=curMonth(), rv=reviewText(p,M);
+  const sum=document.querySelector('#reviewView .rv-summary'); if(!sum) return;
+  sum.innerHTML=`<div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><textarea id="rvImpEdit" class="rv-edit">${esc(rv.improve)}</textarea></div>
+    <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><textarea id="rvWinsEdit" class="rv-edit">${esc(rv.wins)}</textarea></div>`;
+  const btn=document.querySelector('#reviewView .rv-card > .rv-editbtn');
+  if(btn) btn.outerHTML=`<button class="rv-editbtn" onclick="reviewSave()">&#10003; Save</button> <button class="rv-editbtn" style="background:#fff;color:var(--teal);border:1.5px solid var(--teal);" onclick="renderReview()">Cancel</button>`;
+}
+function reviewSave(){
+  const p=reviewOrder[reviewIdx], M=curMonth();
+  if(!M.review) M.review={};
+  M.review[p.id]={ wins:document.getElementById('rvWinsEdit').value, improve:document.getElementById('rvImpEdit').value };
+  persist(); renderReview();
+}
+function reviewToggleSummary(){ reviewShowSummary=!reviewShowSummary; renderReview(); }
+function enterReview(){
+  reviewOrder=buildReviewOrder();
+  if(!reviewOrder.length){ alert("No one on this team to review yet."); return; }
+  reviewMode=true; reviewIdx=0; reviewShowSummary=true;
+  document.getElementById('displayView').classList.add('hidden');
+  document.getElementById('editView').classList.add('hidden');
+  document.getElementById('reviewView').classList.remove('hidden');
+  document.body.classList.add('review-mode');
+  unlockAudio();
+  try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
+  renderReview(); maybeCelebrate();
+}
+function exitReview(){
+  reviewMode=false;
+  document.body.classList.remove('review-mode');
+  document.getElementById('reviewView').classList.add('hidden');
+  document.getElementById('displayView').classList.remove('hidden');
+  try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
+  render();
+}
+function reviewNext(){ if(reviewIdx<reviewOrder.length-1){ reviewIdx++; renderReview(); maybeCelebrate(); } }
+function reviewPrev(){ if(reviewIdx>0){ reviewIdx--; renderReview(); maybeCelebrate(); } }
+function maybeCelebrate(){
+  const p=reviewOrder[reviewIdx]; if(!p) return;
+  const tier = p.total>=500?3 : p.total>=400?2 : p.total>=300?1 : 0;
+  if(!tier) return;
+  confettiBurst(tier); playCelebration(tier);
+  const b=document.createElement('div'); b.className='rv-celebrate t'+tier;
+  b.innerHTML = tier===3?'&#127881; $500 — PERFECT MONTH! &#127881;' : tier===2?'&#127881; $400! &#127881;' : '&#127881; $300!';
+  document.getElementById('reviewView').appendChild(b);
+  setTimeout(()=>b.remove(), tier===3?4200:tier===2?3000:2200);
+}
+document.addEventListener('keydown', e=>{
+  if(!reviewMode) return;
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); reviewNext(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); reviewPrev(); }
+  else if(e.key==='Escape'){ exitReview(); }
+});
+
+/* ---- celebration: confetti (vanilla canvas) + synthesized sound (Web Audio) ---- */
+let confettiCanvas=null, confettiCtx=null, confettiParticles=[], confettiRAF=null;
+function ensureConfetti(){
+  if(confettiCanvas) return;
+  confettiCanvas=document.createElement('canvas'); confettiCanvas.id='confetti';
+  confettiCanvas.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:100000;';
+  document.body.appendChild(confettiCanvas); confettiCtx=confettiCanvas.getContext('2d');
+}
+function confettiBurst(tier){
+  ensureConfetti();
+  const w=confettiCanvas.width=window.innerWidth, h=confettiCanvas.height=window.innerHeight;
+  const colors=['#C8923D','#1F4E5F','#2E7D8F','#4A8C5E','#5B9AA8','#D9A441'];
+  const count = tier===3?280 : tier===2?170 : 90;
+  for(let i=0;i<count;i++) confettiParticles.push({
+    x:w/2+(Math.random()-0.5)*w*0.35, y:h*0.32,
+    vx:(Math.random()-0.5)*(6+tier*3), vy:(Math.random()*-1-0.4)*(5+tier*3)-4,
+    g:0.16+Math.random()*0.12, s:(4+tier*2)+Math.random()*6,
+    c:colors[(Math.random()*colors.length)|0], rot:Math.random()*6, vr:(Math.random()-0.5)*0.4,
+    life:(tier===3?190:tier===2?150:115) });
+  if(!confettiRAF) confettiStep();
+}
+function confettiStep(){
+  const c=confettiCtx, cv=confettiCanvas; c.clearRect(0,0,cv.width,cv.height);
+  confettiParticles=confettiParticles.filter(p=>p.life>0 && p.y<cv.height+30);
+  confettiParticles.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life--;
+    c.save(); c.translate(p.x,p.y); c.rotate(p.rot); c.globalAlpha=Math.max(0,Math.min(1,p.life/45));
+    c.fillStyle=p.c; c.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); c.restore(); });
+  if(confettiParticles.length) confettiRAF=requestAnimationFrame(confettiStep);
+  else { confettiRAF=null; c.clearRect(0,0,cv.width,cv.height); }
+}
+let audioCtx=null;
+function unlockAudio(){ try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} }
+function tone(freq, start, dur, type, vol){
+  if(!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type||'triangle'; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
+  const t0=audioCtx.currentTime+start;
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol||0.2,t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.start(t0); o.stop(t0+dur+0.03);
+}
+function playCelebration(tier){
+  unlockAudio(); if(!audioCtx) return;
+  const asc=[523.25,659.25,783.99,1046.5];               // C E G C
+  const notes = tier===1?asc.slice(0,3):asc;
+  notes.forEach((f,i)=> tone(f, i*0.12, 0.30, 'triangle', 0.22));
+  if(tier>=2){ const t=notes.length*0.12; [523.25,659.25,783.99].forEach(f=> tone(f, t, 0.6, 'triangle', 0.18)); }
+  if(tier>=3){ const t=notes.length*0.12+0.5; [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=> tone(f, t+i*0.08, 0.8, 'sawtooth', 0.14)); }
+}
 
 /* ===== LOCATION VIEW (per-team boards + owner toggle) ===== */
 function resolveView(){

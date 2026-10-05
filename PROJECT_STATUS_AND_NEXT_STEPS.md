@@ -172,6 +172,17 @@ It is not in `GROUPS` and should not be assigned to new people.
   fullscreen and starts a ~2-min auto-refresh (`loadState`→`render`, live-month) so a wall display
   stays current; `exitTV()` / Esc / the ✕ button leaves. Set-and-forget link for an office TV:
   `…/?loc=carbondale-417&tv=1` (or `gypsum-315`) — one team, big, auto-updating.
+- **Month in Review (presentation mode).** Admin-only "Month in Review" button (owner + managers;
+  hidden for viewers via `syncEditBtn`). Fullscreen, one person at a time, ordered LEAST→highest
+  (`buildReviewOrder`: total asc, then more-missed first). Each screen: name, role, big $X/$500,
+  metric dots, and Wins / Needs-to-improve. Summaries auto-draft one sentence per metric, each sorted into Wins (met/on-track) or
+  Needs-to-improve (missed / partial / not-yet-earned) by `autoDraft` — the improve lines are warm,
+  varied, coach-style nudges toward the task (never the word "missed", to encourage not scold), and are
+  editable + saved per person per month in `months[k].review[personId]={wins,improve}` (persists); a
+  "Hide summary" toggle lets you present off the cuff. Runs on the current viewLoc + viewMonth.
+  Keyboard: ←/→/space navigate, Esc exits. Celebrations fire by tier as each person appears — $300
+  small, $400 bigger, $500 biggest — vanilla-canvas confetti (`confettiBurst`) + Web-Audio
+  chime/fanfare (`playCelebration`, audio unlocked on the launch click). Chrome hidden via `body.review-mode`.
 - **Adjustable column widths**, drag-to-resize, persisted in `state.colWidths`.
 - **Team total row.** A gold summary row under the last role table showing earned vs. possible for
   the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays
