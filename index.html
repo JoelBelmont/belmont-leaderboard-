@@ -201,15 +201,15 @@ body.review-mode .toolbar{ display:none !important; }
 #rvExit{ position:fixed; top:12px; right:16px; z-index:60; background:var(--slate); color:#fff; font-size:14px; opacity:.5; }
 #rvExit:hover{ opacity:1; }
 .rv-prog{ font-size:18px; color:var(--mid); margin-bottom:14px; letter-spacing:.5px; }
-.rv-card{ background:#fff; border:1px solid var(--line); border-radius:22px; padding:30px 48px 36px; box-shadow:0 2px 18px rgba(0,0,0,.06); max-width:1040px; width:94%; }
+.rv-card{ background:#fff; border:1px solid var(--line); border-radius:22px; padding:30px 48px 36px; box-shadow:0 2px 18px rgba(0,0,0,.06); max-width:1500px; width:94%; }
 .rv-name{ font-size:58px; font-weight:bold; color:var(--teal); line-height:1.04; }
 .rv-role{ font-size:24px; color:var(--mid); margin-top:4px; }
 .rv-total{ font-size:76px; font-weight:bold; color:var(--gold); margin:16px 0 8px; line-height:1; }
 .rv-of{ font-size:30px; color:var(--mid); }
 .rv-bar{ height:14px; background:var(--line); border-radius:8px; overflow:hidden; max-width:540px; margin:0 auto 26px; }
 .rv-barfill{ height:100%; background:linear-gradient(90deg,var(--lteal),var(--gold)); border-radius:8px; }
-.rv-metrics{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px 28px; margin-bottom:26px; }
-.rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); }
+.rv-metrics{ display:flex; flex-wrap:nowrap; justify-content:center; gap:14px 24px; margin-bottom:26px; transform-origin:center; }
+.rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); white-space:nowrap; flex:0 0 auto; }
 .rv-metric .dot{ width:22px; height:22px; }
 .rv-summary{ display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
 .rv-sum{ flex:1 1 320px; min-width:280px; max-width:460px; border-radius:14px; padding:16px 22px; text-align:left; }
@@ -220,6 +220,8 @@ body.review-mode .toolbar{ display:none !important; }
 .rv-sumtxt{ font-size:20px; line-height:1.45; color:var(--slate); white-space:pre-wrap; }
 .rv-edit{ width:100%; min-height:96px; font-family:inherit; font-size:17px; padding:9px; border:1px solid var(--line); border-radius:8px; }
 .rv-editbtn{ margin-top:10px; font-size:14px; background:var(--teal); color:#fff; }
+.rv-value{ margin:20px auto 0; max-width:900px; background:#faf1dd; border:1px solid var(--gold); border-radius:14px; padding:15px 24px; font-size:19px; line-height:1.4; color:var(--teal); }
+.rv-value b{ color:#9a6e1f; }
 .rv-nav{ display:flex; gap:16px; justify-content:center; align-items:center; margin-top:28px; flex-wrap:wrap; }
 .rv-nav button{ font-size:20px; padding:14px 32px; background:var(--teal); color:#fff; }
 .rv-nav button:disabled{ opacity:.35; cursor:default; }
@@ -1100,27 +1102,151 @@ let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true;
 function canReviewEdit(){ return userScope==="owner" || userScope===viewLoc; }
 // deterministic "random" so lines stay put on re-render but vary by person + month
 function hashStr(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h; }
-const WIN_LINES=[
-  l=>`${l} — nailed it.`, l=>`${l} — rock solid.`, l=>`${l} — that's how it's done.`,
-  l=>`${l} — consistent and dependable.`, l=>`${l} — strong all month.`,
-  l=>`${l} — exactly what we look for.`, l=>`${l} — money in the bank.`,
-  l=>`${l} — kept it clean.`, l=>`${l} — way to show up.`, l=>`${l} — dialed in.`,
-  l=>`${l} — no notes, just great.`, l=>`${l} — crushed it.` ];
-const GO_LINES=[
+// Each metric maps to a theme whose lines say WHY it matters. Keyword-matched so it survives relabels.
+const THEMES=[
+  {id:'attend', kw:/attend|punctual|on.?time|appearance|show.?up|arriv|tardy/i,
+   win:[ l=>`${l} — you're someone the whole crew can count on, and that reliability sets the tone for everyone.`,
+         l=>`${l} — showing up ready and on time is the foundation the whole day is built on. Rock solid.`,
+         l=>`${l} — dependability like this is quietly one of the most valuable things on the team.` ],
+   go:[ l=>`${l} is the foundation — when you're here and on time, the whole day runs smoother. Let's make it automatic.`,
+        l=>`Being dependable on ${l} sets the tone for the crew; let's lock it in this month.` ]},
+  {id:'docs', kw:/jobsite doc|documentation|docu|receipt|eod|paperwork|photo|water tag|report|readings|moisture|sign.?off|notes/i,
+   win:[ l=>`${l} — this is what makes our invoices airtight and gets us paid without a fight. Big deal.`,
+         l=>`${l} — staying on top of this means nothing slips through the cracks on billing. Excellent discipline.`,
+         l=>`${l} — capturing it properly protects every job and every dollar we bill. Great habit.` ],
+   go:[ l=>`${l} protects every invoice — capturing it on the spot is what keeps our billing bulletproof. Let's build the habit.`,
+        l=>`When ${l} is dialed in, nothing falls through the cracks and we get paid cleanly. Worth the focus.` ]},
+  {id:'crm', kw:/crm/i,
+   win:[ l=>`${l} — logging it same-day means nothing falls through the cracks and every follow-up actually lands. Pro move.`,
+         l=>`${l} — this is what keeps us organized so no opportunity ever gets dropped. Great discipline.`,
+         l=>`${l} — a clean CRM is how we stay on top of every lead and customer. Really valuable.` ],
+   go:[ l=>`${l} is how we make sure nothing slips — a logged touch is one we can actually follow up on. Let's stay on it.`,
+        l=>`Keeping ${l} current means no lead gets forgotten; a quick daily habit locks this in.` ]},
+  {id:'reviews', kw:/review|testimonial|rating|star/i,
+   win:[ l=>`${l} — every review builds our reputation and brings the next customer in the door. That's real growth.`,
+         l=>`${l} — this is the social proof that wins us new business while we sleep. Fantastic.`,
+         l=>`${l} — reviews are our best advertising, and you're stacking them up. Excellent.` ],
+   go:[ l=>`${l} is how future customers decide to trust us, and each one compounds. Let's go get them.`,
+        l=>`Reviews are our best advertising — let's make ${l} a priority and watch the referrals follow.` ]},
+  {id:'meetings', kw:/meeting|1:1|1-on-1|one.on.one|touch.?base|check.?in|sit.?down/i,
+   win:[ l=>`${l} — face time is how partnerships deepen and deals move forward. This is the engine of our growth.`,
+         l=>`${l} — showing up for these turns contacts into real relationships that send us work. Great job.`,
+         l=>`${l} — every one of these conversations moves us forward. Strong work putting in the reps.` ],
+   go:[ l=>`${l} is where relationships and revenue are built — every meeting moves us forward. Let's prioritize it.`,
+        l=>`The more face time on ${l}, the warmer our partners stay. Let's make these happen.` ]},
+  {id:'social', kw:/social|post|instagram|facebook|linkedin|content|reel|tiktok/i,
+   win:[ l=>`${l} — consistency here keeps us top-of-mind and drives real engagement with our audience. Love to see it.`,
+         l=>`${l} — staying visible is how we stay in the conversation and attract new eyes. Nicely done.`,
+         l=>`${l} — showing up online consistently is quietly building our audience. Great cadence.` ],
+   go:[ l=>`${l} keeps us in front of people — consistency is what actually drives engagement. Let's keep the cadence going.`,
+        l=>`Staying visible with ${l} keeps us top-of-mind; small, steady posts add up fast.` ]},
+  {id:'dropoffs', kw:/drop.?off|pop.?by|pop.?in|door.?knock|canvas/i,
+   win:[ l=>`${l} — every touchpoint keeps our partners warm and the referrals coming. This is relationship fuel.`,
+         l=>`${l} — showing up in person is what sets us apart from the competition. Strong hustle.`,
+         l=>`${l} — these little visits plant seeds that turn into real work. Great consistency.` ],
+   go:[ l=>`${l} keeps us present and memorable with partners — presence wins referrals. Let's get out there.`,
+        l=>`Each drop-off plants a seed; let's make ${l} a steady rhythm this month.` ]},
+  {id:'prospects', kw:/prospect|new lead|new account|cold call|outreach/i,
+   win:[ l=>`${l} — you're filling the pipeline that becomes next quarter's revenue. That's playing the long game right.`,
+         l=>`${l} — new prospects today are jobs tomorrow. Excellent work feeding the funnel.`,
+         l=>`${l} — a full pipeline is what keeps us growing, and you're keeping it full. Great job.` ],
+   go:[ l=>`${l} is tomorrow's revenue — a full pipeline keeps us growing. Let's keep adding to it.`,
+        l=>`Every new prospect on ${l} is a future customer; let's keep the funnel full.` ]},
+  {id:'breakfast', kw:/breakfast|lunch|coffee|meal|dinner|CE class|host/i,
+   win:[ l=>`${l} — breaking bread is how real relationships get built. This is partnership-building at its best.`,
+         l=>`${l} — these moments keep our partners engaged and loyal to us. Well done.`,
+         l=>`${l} — face-to-face time like this is what keeps referrals coming. Great work.` ],
+   go:[ l=>`${l} builds the relationships that send us work; let's get a few on the calendar.`,
+        l=>`Nothing beats face-to-face — let's make ${l} happen and keep partners close.` ]},
+  {id:'van', kw:/van|truck|vehicle|rig|trailer|warehouse|equipment/i,
+   win:[ l=>`${l} — a clean, stocked van means you're ready for the next job and we look sharp doing it. Great habit.`,
+         l=>`${l} — this is the professionalism customers notice the moment we pull up. Nicely kept.`,
+         l=>`${l} — a reset van saves time on every single job. Strong discipline.` ],
+   go:[ l=>`${l} keeps you ready to roll and our image sharp on every jobsite. Let's keep it tight.`,
+        l=>`A reset van saves time on every job; let's make ${l} part of the daily routine.` ]},
+  {id:'rework', kw:/rework|re-?work|redo|do.?over|callback|call.?back|warranty|punch.?list/i,
+   win:[ l=>`${l} — getting it right the first time saves money and earns customer trust. That's craftsmanship.`,
+         l=>`${l} — no do-overs means happy customers and efficient days. Excellent work.`,
+         l=>`${l} — quality the first time is what builds our reputation. Great job.` ],
+   go:[ l=>`${l} is about nailing it the first time — it saves hours and builds trust. Let's keep quality front and center.`,
+        l=>`Fewer reworks means more done right; let's focus on ${l} this month.` ]},
+  {id:'collections', kw:/collection|minimum|revenue|receivable|\bA\/?R\b|cash|billing total/i,
+   win:[ l=>`${l} — bringing the money in is what keeps the whole operation healthy. A huge contribution.`,
+         l=>`${l} — hitting this keeps our cash flow strong and the team paid. Outstanding.`,
+         l=>`${l} — collections are the lifeblood of the business, and you delivered. Excellent.` ],
+   go:[ l=>`${l} is the lifeblood — steady collections keep everything running. Let's stay on top of it.`,
+        l=>`Cash flow powers the whole business; let's make ${l} a priority this month.` ]},
+  {id:'estimate', kw:/estimate|invoice|quote|bid|proposal|scope|turnaround/i,
+   win:[ l=>`${l} — fast turnaround is often what wins the job. Your speed here directly earns us work.`,
+         l=>`${l} — getting these out quickly keeps momentum and closes deals. Great work.`,
+         l=>`${l} — speed like this is a real competitive edge for us. Nicely done.` ],
+   go:[ l=>`${l} is a race — the faster the estimate, the more jobs we win. Let's tighten the turnaround.`,
+        l=>`Speed wins; let's make ${l} same-day and watch the close rate climb.` ]},
+  {id:'conversion', kw:/conversion|convert|close.?rate|win.?rate|closing|booked/i,
+   win:[ l=>`${l} — turning opportunities into signed work is the whole ballgame, and you're closing. Excellent.`,
+         l=>`${l} — this is where effort becomes revenue. Strong month.`,
+         l=>`${l} — a high conversion rate means our pipeline is actually paying off. Great job.` ],
+   go:[ l=>`${l} is where it all pays off — converting leads into jobs. Let's sharpen the follow-through.`,
+        l=>`Let's turn more opportunities into wins; ${l} is the one to push on.` ]},
+  {id:'events', kw:/event|expo|trade.?show|booth|sponsor|conference|networking|community/i,
+   win:[ l=>`${l} — getting out to events keeps us visible and plants seeds for future work. Great presence.`,
+         l=>`${l} — showing up in the community is how new relationships start. Nicely done.`,
+         l=>`${l} — this kind of presence keeps our name in front of the right people. Great work.` ],
+   go:[ l=>`${l} gets our name out and builds relationships that turn into work. Let's get on a few calendars.`,
+        l=>`Community presence pays off; let's make ${l} happen this month.` ]},
+  {id:'safety', kw:/safety|ppe|hazard|incident|osha|lockout|containment/i,
+   win:[ l=>`${l} — keeping safety front and center protects the whole crew and the customer. That matters most.`,
+         l=>`${l} — doing it safely every time is how everyone goes home whole. Great discipline.`,
+         l=>`${l} — safety like this is quietly the most important win on the board.` ],
+   go:[ l=>`${l} keeps everyone protected — our procedures exist because quality and safety matter. Let's hold the standard.`,
+        l=>`Staying sharp on ${l} keeps the crew safe and the job right; let's keep it tight.` ]},
+  {id:'training', kw:/training|certif|\bcert\b|course|learning|develop|education|skill/i,
+   win:[ l=>`${l} — investing in your growth makes you better and lifts the whole team. Great initiative.`,
+         l=>`${l} — leveling up your skills is how we all get stronger. Love to see it.`,
+         l=>`${l} — staying a learner is what sets the best apart. Well done.` ],
+   go:[ l=>`${l} is an investment in you and the team — a little each week compounds fast. Let's make time for it.`,
+        l=>`Growing your skills on ${l} pays off everywhere; let's prioritize it this month.` ]}
+];
+const GENERIC_WIN=[
+  l=>`${l} — consistent effort here makes a real difference for the whole team. Well done.`,
+  l=>`${l} — this is exactly the kind of reliability that moves us forward. Great work.`,
+  l=>`${l} — staying on top of this keeps everything running smoothly. Excellent.` ];
+const GENERIC_GO=[
   l=>`Let's build the habit on ${l} — the first few are the hardest, then it clicks.`,
   l=>`${l} is one of those that quietly makes everything else easier — worth the focus.`,
   l=>`Even knocking out ${l} once early gets the momentum going.`,
-  l=>`I've seen you handle tougher — ${l} is well within reach.`,
   l=>`Let's make ${l} the one to conquer this month.`,
-  l=>`New month, clean slate — ${l} is a great place to plant a flag.`,
-  l=>`A simple routine around ${l} and it starts to take care of itself.`,
-  l=>`You're close on a lot — ${l} is the finishing touch.`,
-  l=>`Picture next month's board with ${l} green. Let's make that happen.`,
-  l=>`${l} is the next rung on the ladder — let's grab it.`,
-  l=>`Small, steady effort on ${l} and it'll come — no pressure.`,
-  l=>`What would help you stay on top of ${l}? Let's sort that out together.`,
-  l=>`Keep ${l} front and center this month and watch it move.`,
-  l=>`${l} is right in your wheelhouse — go claim it.` ];
+  l=>`Small, steady effort on ${l} and it'll come — no pressure.` ];
+function themeFor(label){ for(const t of THEMES){ if(t.kw.test(label)) return t; } return null; }
+// metric theme -> Belmont core value it best expresses (from the SOS). Edit here to re-map.
+const THEME_VALUE = {
+  attend:'caring', reviews:'caring', breakfast:'caring',
+  rework:'integrity',
+  van:'stewardship', collections:'stewardship', dropoffs:'stewardship', events:'stewardship',
+  prospects:'initiative', meetings:'initiative', social:'initiative', conversion:'initiative', estimate:'initiative',
+  docs:'responsibility', crm:'responsibility',
+  safety:'responsibility', training:'initiative' };
+const VALUES = {
+  caring:{ name:'Caring', lines:[
+    `the way you show up and serve people is Caring in its truest form — the heart of Belmont.`,
+    `reliability like yours is caring made visible, and the whole team feels it.`,
+    `looking out for clients and teammates the way you do is Caring, plain and simple.` ]},
+  integrity:{ name:'Integrity', lines:[
+    `doing the work right, every time, is Integrity lived out — the kind customers trust.`,
+    `you do it right even when no one's watching. That's Integrity.`,
+    `standing behind the quality of your work is Integrity you can count on.` ]},
+  stewardship:{ name:'Stewardship', lines:[
+    `taking care of our equipment, our dollars, and our community is Stewardship at its best.`,
+    `you treat what we've been given like a true guardian would. That's Stewardship.`,
+    `protecting our resources and our reputation is Stewardship in action.` ]},
+  initiative:{ name:'Initiative', lines:[
+    `spotting the opportunity and making it happen is Initiative — you don't wait to be asked.`,
+    `you look for what needs to happen next and go get it. That's Initiative.`,
+    `driving things forward the way you do is Initiative, pure and simple.` ]},
+  responsibility:{ name:'Responsibility', lines:[
+    `owning the details and following through is Responsibility you can set your watch by.`,
+    `everything you touch has your name on it, done right. That's Responsibility.`,
+    `taking full ownership the way you do is Responsibility at its finest.` ]} };
 const CLOSE_LINES=[
   l=>`So close on ${l} — just a bit more gets you all the way.`,
   l=>`Great progress on ${l} — let's carry it over the line.`,
@@ -1133,24 +1259,30 @@ const ALLGOOD_LINES=[ `Clean sweep — every metric on track. Phenomenal.`,
                       `Not a thing to fix — flawless month. Keep it rolling.` ];
 function autoDraft(p, M){
   const types=typesFor(viewMonth,p.group), labels=M.labels[p.group]||[], sc=M.scores[p.id]||[];
-  const wins=[], improve=[], used={win:new Set(),go:new Set(),close:new Set()};
+  const wins=[], improve=[], used={};
   // start at the hashed index, then probe to the next unused one so no line repeats within a person's list
-  const pickIdx=(len,h,key)=>{ const u=used[key]; let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
+  const pickIdx=(len,h,key)=>{ const u=used[key]||(used[key]=new Set()); let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
   sc.forEach((s,i)=>{
     const st=cellStatus(s,types[i]), lbl=labels[i]||("Metric "+(i+1));
-    const h=hashStr((p.id||p.name||"")+"|"+i+"|"+viewMonth);   // stable per person+metric+month, spread across the set
-    if(st==="met") wins.push(WIN_LINES[pickIdx(WIN_LINES.length,h,'win')](lbl));
+    const h=hashStr((p.id||p.name||"")+"|"+i+"|"+viewMonth), th=themeFor(lbl);   // theme = why this metric matters
+    if(st==="met"){ const pool=th?th.win:GENERIC_WIN; wins.push(pool[pickIdx(pool.length,h,'w:'+(th?th.id:'*'))](lbl)); }
     else if(st==="part") improve.push(CLOSE_LINES[pickIdx(CLOSE_LINES.length,h,'close')](lbl));
-    else improve.push(GO_LINES[pickIdx(GO_LINES.length,h,'go')](lbl));   // missed or not-yet-earned → encourage the task
+    else { const pool=th?th.go:GENERIC_GO; improve.push(pool[pickIdx(pool.length,h,'g:'+(th?th.id:'*'))](lbl)); }
   });
+  // the core value this person most embodied this month (from the metrics they did well)
+  const vc={};
+  sc.forEach((s,i)=>{ if(cellStatus(s,types[i])==="met"){ const th=themeFor(labels[i]||""); const v=th&&THEME_VALUE[th.id]; if(v) vc[v]=(vc[v]||0)+1; } });
+  let value=null; const vk=Object.keys(vc);
+  if(vk.length){ vk.sort((a,b)=> vc[b]-vc[a] || (hashStr(a+(p.id||""))-hashStr(b+(p.id||"")))); const def=VALUES[vk[0]];
+    value={ name:def.name, line:def.lines[hashStr((p.id||p.name||"")+"|val|"+viewMonth)%def.lines.length] }; }
   const hp=hashStr((p.id||p.name||"")+"|"+viewMonth);
   return { wins: wins.length ? wins.join("\n") : NOWIN_LINES[hp % NOWIN_LINES.length],
-           improve: improve.length ? improve.join("\n") : ALLGOOD_LINES[hp % ALLGOOD_LINES.length] };
+           improve: improve.length ? improve.join("\n") : ALLGOOD_LINES[hp % ALLGOOD_LINES.length], value };
 }
 function reviewText(p, M){
   const stored=(M.review&&M.review[p.id])||null, draft=autoDraft(p,M);
   return { wins:(stored&&stored.wins!=null)?stored.wins:draft.wins,
-           improve:(stored&&stored.improve!=null)?stored.improve:draft.improve };
+           improve:(stored&&stored.improve!=null)?stored.improve:draft.improve, value:draft.value };
 }
 function buildReviewOrder(){
   const list=peopleInMonth(viewMonth).filter(p=>p.location===viewLoc).map(p=>{
@@ -1181,6 +1313,7 @@ function renderReview(){
         <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${esc(rv.improve)}</div></div>
         <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${esc(rv.wins)}</div></div>
       </div>
+      ${(rv.value && reviewShowSummary)?`<div class="rv-value">&#128142; <b>${esc(rv.value.name)} in action</b> &mdash; ${esc(rv.value.line)}</div>`:''}
       ${(reviewShowSummary&&canReviewEdit())?`<button class="rv-editbtn" onclick="reviewEdit()">&#9998; Edit summary</button>`:''}
     </div>
     <div class="rv-nav">
@@ -1188,7 +1321,15 @@ function renderReview(){
       <button class="rv-toggle" onclick="reviewToggleSummary()">${reviewShowSummary?'Hide summary':'Show summary'}</button>
       <button onclick="reviewNext()" ${reviewIdx>=reviewOrder.length-1?'disabled':''}>Next &rsaquo;</button>
     </div>`;
+  fitReviewMetrics();
 }
+function fitReviewMetrics(){
+  const m=document.querySelector('#reviewView .rv-metrics'); if(!m) return;
+  m.style.transform='none';
+  const avail=m.clientWidth, w=m.scrollWidth;
+  if(w>avail+1) m.style.transform='scale('+(avail/w)+')';   // keep all metrics on one line, shrink only if needed
+}
+window.addEventListener('resize', ()=>{ if(reviewMode) fitReviewMetrics(); });
 function reviewEdit(){
   const p=reviewOrder[reviewIdx], M=curMonth(), rv=reviewText(p,M);
   const sum=document.querySelector('#reviewView .rv-summary'); if(!sum) return;

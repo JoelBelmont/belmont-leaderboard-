@@ -175,9 +175,15 @@ It is not in `GROUPS` and should not be assigned to new people.
 - **Month in Review (presentation mode).** Admin-only "Month in Review" button (owner + managers;
   hidden for viewers via `syncEditBtn`). Fullscreen, one person at a time, ordered LEAST→highest
   (`buildReviewOrder`: total asc, then more-missed first). Each screen: name, role, big $X/$500,
-  metric dots, and Wins / Needs-to-improve. Summaries auto-draft one sentence per metric, each sorted into Wins (met/on-track) or
-  Needs-to-improve (missed / partial / not-yet-earned) by `autoDraft` — the improve lines are warm,
-  varied, coach-style nudges toward the task (never the word "missed", to encourage not scold), and are
+  metric dots, Wins / Needs-to-improve, and a gold "💎 [core value] in action" callout naming the
+  Belmont value (Caring/Integrity/Stewardship/Initiative/Responsibility) the person most embodied — the
+  plurality value across their won metrics, via `THEME_VALUE` (theme→value map, editable) + `VALUES`
+  (callout lines); skipped if they have no wins. Summaries auto-draft one sentence per metric, each sorted into Wins (met/on-track) or
+  Needs-to-improve (missed / partial / not-yet-earned) by `autoDraft` — lines are
+  metric-aware — `autoDraft` maps each label to a THEME (keyword-matched, GENERIC_* fallback) that names
+  WHY the metric matters: wins celebrate + explain the impact, improve lines encourage the task + its
+  value (never the word "missed"). A per-person/month hash with no-repeat probing keeps them varied and
+  stable across re-renders, fresh next month. All are
   editable + saved per person per month in `months[k].review[personId]={wins,improve}` (persists); a
   "Hide summary" toggle lets you present off the cuff. Runs on the current viewLoc + viewMonth.
   Keyboard: ←/→/space navigate, Esc exits. Celebrations fire by tier as each person appears — $300
