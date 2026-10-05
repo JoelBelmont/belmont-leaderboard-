@@ -1481,8 +1481,11 @@ function celebrate500(){
 }
 function playCelebration(tier){
   unlockAudio(); if(!AC) return;
+  if(AC.state==="suspended"){ AC.resume().then(()=>{ if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300(); }).catch(()=>{}); return; }
   if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300();
 }
+// unlock/resume the audio context on ANY user interaction, so celebrations are reliably audible (beats autoplay rules)
+['pointerdown','keydown','touchstart','click'].forEach(ev=>document.addEventListener(ev, ()=>{ try{ unlockAudio(); }catch(e){} }, true));
 
 /* ===== LOCATION VIEW (per-team boards + owner toggle) ===== */
 function resolveView(){
