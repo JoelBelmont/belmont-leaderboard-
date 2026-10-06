@@ -191,11 +191,11 @@ It is not in `GROUPS` and should not be assigned to new people.
   sounds (`playCelebration` → `celebrate300` Grand Fanfare / `celebrate400` Victory Jingle / `celebrate500`
   extended Chime-Cascade finale; audio unlocked on the launch click; a 2nd confetti burst fires mid-$500
   finale). Chrome hidden via `body.review-mode`.
-- **Cash Rewards toggle (owner only).** A 💰 "Cash Rewards: ON/OFF" button in the toolbar (shown only
+- **Cash Rewards toggle (owner only).** A low-key "Points: ON/OFF" button in the toolbar (no icon, deliberately understated; label set in `applyCashMode`; "Points: ON" = score mode, "Points: OFF" = dollar mode) (shown only
   when `userScope==="owner"` via `syncEditBtn`; stored as `state.cashMode`, default `true`, migrated onto
   existing boards). **ON** = the original dollar view ($0–$500 potential earnings, YTD paid, streak
   bonuses). **OFF** = a plain **1–5 / 5 score** with half-steps (e.g. `3.5 / 5`), color-coded by
-  `scoreClass`: **5 gold, 4 green, 3 yellow, 2 orange, 1 red**. The score is simply `total$ / 100`
+  `scoreClass` (bands, Oct 2026): **0–1 red (#D23F2C), 1.5–3 orange (#F08A2C), 3.5–4 light green (#8CC85C), 4.5–5 green (#3E9E57)** — no yellow; classes `scr/sco/sclg/scg`; `scoreColor()` gives matching text colors for the big review-card number. The score is simply `total$ / 100`
   (`scoreNum`/`scoreStr`/`scoreBadge`/`scoreColor`), so **no data changes** — toggling back to Cash mode
   picks up YTD/earnings exactly where it left off (verified: scores + cashMode persist through toggles).
   Implementation: `CASH()` gate + `valueCell(total)` everywhere a per-person total renders (role tables,
