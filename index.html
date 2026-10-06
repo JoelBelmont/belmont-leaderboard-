@@ -208,7 +208,7 @@ body.review-mode{ overflow:hidden; }
 body.review-mode .head,
 body.review-mode #locToggle,
 body.review-mode .toolbar{ display:none !important; }
-#reviewView:not(.hidden){ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:24px 20px; text-align:center; }
+#reviewView:not(.hidden){ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:24px 20px 104px; text-align:center; }
 #rvExit{ position:fixed; top:12px; right:16px; z-index:60; background:var(--slate); color:#fff; font-size:14px; opacity:.5; }
 #rvExit:hover{ opacity:1; }
 .rv-prog{ font-size:18px; color:var(--mid); margin-bottom:14px; letter-spacing:.5px; }
@@ -240,7 +240,8 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
 .rv-editbtn{ margin-top:10px; font-size:14px; background:var(--teal); color:#fff; }
 .rv-value{ margin:20px auto 0; max-width:900px; background:#faf1dd; border:1px solid var(--gold); border-radius:14px; padding:15px 24px; font-size:19px; line-height:1.4; color:var(--teal); }
 .rv-value b{ color:#9a6e1f; }
-.rv-nav{ display:flex; gap:16px; justify-content:center; align-items:center; margin-top:28px; flex-wrap:wrap; }
+/* Pinned to the bottom of the screen so the buttons never shift as summary length changes. */
+.rv-nav{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; gap:16px; justify-content:center; align-items:center; margin:0; padding:14px 20px; flex-wrap:wrap; background:var(--paper); border-top:1px solid var(--line); }
 .rv-nav button{ font-size:20px; padding:14px 32px; background:var(--teal); color:#fff; }
 .rv-nav button:disabled{ opacity:.35; cursor:default; }
 .rv-nav .rv-toggle{ background:#fff; color:var(--teal); border:1.5px solid var(--teal); }
@@ -1500,9 +1501,13 @@ function confettiStep(){
   if(confettiParticles.length) confettiRAF=requestAnimationFrame(confettiStep);
   else { confettiRAF=null; c.clearRect(0,0,cv.width,cv.height); }
 }
-let AC=null, MG=null;
-function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC; }
-function unlockAudio(){ try{ ac(); }catch(e){} }
+let AC=null, MG=null, acPrimed=false;
+/* Safari has an extra 'interrupted' state (not just 'suspended') that fullscreen/tab-switches trigger —
+   resume on both, or scheduled notes are silently dropped. */
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended'||AC.state==='interrupted') AC.resume(); return AC; }
+function unlockAudio(){ try{ const a=ac();
+  if(!acPrimed){ const b=a.createBuffer(1,1,22050), s=a.createBufferSource(); s.buffer=b; s.connect(a.destination); s.start(0); acPrimed=true; } // silent primer fully opens Safari's audio gate
+}catch(e){} }
 function masterGain(){ const a=ac(); if(!MG){ MG=a.createGain(); MG.gain.value=0.7; MG.connect(a.destination); } return MG; }
 function voice(freq,t,dur,type,vol){
   const a=ac(), o=a.createOscillator(), g=a.createGain();
@@ -1551,9 +1556,12 @@ function celebrate500(){
   sparkleDown(t4+0.3,2637,12,0.08); sparkleUp(t4+0.3,1046.5,10,0.06);          // long glittering tail
 }
 function playCelebration(tier){
-  unlockAudio(); if(!AC) return;
-  if(AC.state==="suspended"){ AC.resume().then(()=>{ if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300(); }).catch(()=>{}); return; }
-  if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300();
+  let a; try{ a=ac(); }catch(e){ return; }
+  unlockAudio();
+  const go=()=>{ try{ if(tier>=3) celebrate500(); else if(tier===2) celebrate400(); else celebrate300(); }catch(e){} };
+  // only schedule once the engine is actually running — covers Safari's 'suspended' AND 'interrupted'
+  if(a.state!=="running"){ a.resume().then(go).catch(go); }
+  else go();
 }
 // unlock/resume the audio context on ANY user interaction, so celebrations are reliably audible (beats autoplay rules)
 ['pointerdown','keydown','touchstart','click'].forEach(ev=>document.addEventListener(ev, ()=>{ try{ unlockAudio(); }catch(e){} }, true));

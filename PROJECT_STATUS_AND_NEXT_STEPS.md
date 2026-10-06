@@ -190,7 +190,14 @@ It is not in `GROUPS` and should not be assigned to new people.
   small, $400 bigger, $500 biggest — vanilla-canvas confetti (`confettiBurst`) + Web-Audio
   sounds (`playCelebration` → `celebrate300` Grand Fanfare / `celebrate400` Victory Jingle / `celebrate500`
   extended Chime-Cascade finale; audio unlocked on the launch click; a 2nd confetti burst fires mid-$500
-  finale). Chrome hidden via `body.review-mode`.
+  finale). Chrome hidden via `body.review-mode`. The nav row (`.rv-nav`) is **fixed to the bottom of the
+  screen** so Previous / Hide summary / Next never shift as summary length changes (`#reviewView` has
+  `padding-bottom:104px` to clear it). **Safari audio hardening (Oct 2026):** `ac()` resumes on Safari's
+  `interrupted` state as well as `suspended` (fullscreen/tab-switch triggers `interrupted`, which was
+  silently dropping scheduled notes — the "works in Chrome, intermittent in Safari" bug); `unlockAudio()`
+  plays a 1-sample silent primer the first time; `playCelebration()` only schedules once the context is
+  actually `running` (resume().then(go)). Verified no Chrome regression; Safari behavior to be confirmed
+  on-device by Joel.
 - **Cash Rewards toggle (owner only).** A low-key "Points: ON/OFF" button in the toolbar (no icon, deliberately understated; label set in `applyCashMode`; "Points: ON" = score mode, "Points: OFF" = dollar mode) (shown only
   when `userScope==="owner"` via `syncEditBtn`; stored as `state.cashMode`, default `true`, migrated onto
   existing boards). **ON** = the original dollar view ($0–$500 potential earnings, YTD paid, streak
