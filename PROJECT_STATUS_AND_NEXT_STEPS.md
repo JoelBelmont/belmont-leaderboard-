@@ -195,7 +195,7 @@ It is not in `GROUPS` and should not be assigned to new people.
   when `userScope==="owner"` via `syncEditBtn`; stored as `state.cashMode`, default `true`, migrated onto
   existing boards). **ON** = the original dollar view ($0–$500 potential earnings, YTD paid, streak
   bonuses). **OFF** = a plain **1–5 / 5 score** with half-steps (e.g. `3.5 / 5`), color-coded by
-  `scoreClass` (bands, Oct 2026): **0–1 red (#D23F2C), 1.5–3 orange (#F08A2C), 3.5–4 light green (#8CC85C), 4.5–5 green (#3E9E57)** — no yellow; classes `scr/sco/sclg/scg`; `scoreColor()` gives matching text colors for the big review-card number. The score is simply `total$ / 100`
+  `scoreClass` (bands, Oct 2026): **0–1 red (#D23F2C), 1.5–3 orange (#F08A2C), 3.5–4 light green (#8CC85C), 4.5–5 green (#3E9E57)** — no yellow; classes `scr/sco/sclg/scg`; `scoreColor()` gives matching text colors for the big review-card number. In **Month-in-Review**, the progress bar (`.rv-barfill`) in score mode is a red→orange→light-green→green scale gradient **anchored to the full track width** (`paintReviewBar()` sets `background-size` to the track's px width; recomputed on resize) — so a low scorer's short fill sits in the red and a top performer's full fill reaches green, matching the standings as you cycle least→highest. Cash mode keeps the original teal→gold fill unchanged. The score is simply `total$ / 100`
   (`scoreNum`/`scoreStr`/`scoreBadge`/`scoreColor`), so **no data changes** — toggling back to Cash mode
   picks up YTD/earnings exactly where it left off (verified: scores + cashMode persist through toggles).
   Implementation: `CASH()` gate + `valueCell(total)` everywhere a per-person total renders (role tables,

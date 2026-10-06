@@ -218,7 +218,10 @@ body.review-mode .toolbar{ display:none !important; }
 .rv-total{ font-size:76px; font-weight:bold; color:var(--gold); margin:16px 0 8px; line-height:1; }
 .rv-of{ font-size:30px; color:var(--mid); }
 .rv-bar{ height:14px; background:var(--line); border-radius:8px; overflow:hidden; max-width:540px; margin:0 auto 26px; }
-.rv-barfill{ height:100%; background:linear-gradient(90deg,var(--lteal),var(--gold)); border-radius:8px; }
+.rv-barfill{ height:100%; border-radius:8px; background:linear-gradient(90deg,var(--lteal),var(--gold)); }
+/* Score mode: the fill reads like the score scale — red (low) → orange → light green → green (top). */
+body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:left center;
+  background-image:linear-gradient(to right,#D23F2C 0%,#D23F2C 16%,#F08A2C 42%,#8CC85C 72%,#3E9E57 100%); }
 .rv-metrics{ display:flex; flex-wrap:nowrap; justify-content:center; gap:14px 24px; margin-bottom:26px; transform-origin:center; }
 .rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); white-space:nowrap; flex:0 0 auto; }
 .rv-metric .dot{ width:22px; height:22px; }
@@ -1394,6 +1397,14 @@ function renderReview(){
       <button onclick="reviewNext()" ${reviewIdx>=reviewOrder.length-1?'disabled':''}>Next &rsaquo;</button>
     </div>`;
   fitReviewMetrics();
+  paintReviewBar();
+}
+/* Anchor the fill's red→orange→light-green→green gradient to the FULL track width, so the filled
+   portion reveals the left part of the scale: low scorers sit in the red, top performers reach green. */
+function paintReviewBar(){
+  const bar=document.querySelector('#reviewView .rv-bar'), fill=document.querySelector('#reviewView .rv-barfill');
+  if(!bar||!fill) return;
+  fill.style.backgroundSize = CASH() ? '' : (bar.clientWidth + 'px 100%');   // score mode anchors the scale gradient to the full track
 }
 function fitReviewMetrics(){
   const m=document.querySelector('#reviewView .rv-metrics'); if(!m) return;
@@ -1401,7 +1412,7 @@ function fitReviewMetrics(){
   const avail=m.clientWidth, w=m.scrollWidth;
   if(w>avail+1) m.style.transform='scale('+(avail/w)+')';   // keep all metrics on one line, shrink only if needed
 }
-window.addEventListener('resize', ()=>{ if(reviewMode) fitReviewMetrics(); });
+window.addEventListener('resize', ()=>{ if(reviewMode){ fitReviewMetrics(); paintReviewBar(); } });
 function reviewEdit(){
   const p=reviewOrder[reviewIdx], M=curMonth(), rv=reviewText(p,M);
   const sum=document.querySelector('#reviewView .rv-summary'); if(!sum) return;
