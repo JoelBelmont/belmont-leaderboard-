@@ -104,8 +104,8 @@
   /* ---- Score mode (Cash Rewards toggle OFF): 1-5/5 color-coded badge ---- */
   .scorebadge{display:inline-block;font-weight:bold;padding:2px 11px;border-radius:9px;white-space:nowrap;font-size:.95em;line-height:1.35;}
   .scg{background:#3E9E57;color:#fff;}                /* 4.5–5 = green       */
-  .sclg{background:#8CC85C;color:#24400f;}            /* 3.5–4 = light green */
-  .sco{background:#F08A2C;color:#fff;}                /* 1.5–3 = orange      */
+  .sclg{background:#8CC85C;color:#24400f;}            /* 3–4   = light green */
+  .sco{background:#F08A2C;color:#fff;}                /* 1.5–2.5 = orange    */
   .scr{background:#D23F2C;color:#fff;}                /* 0–1   = red         */
   body.scoremode .cashonly{display:none !important;}
   body:not(.scoremode) .scoreonly{display:none !important;}
@@ -221,7 +221,7 @@ body.review-mode .toolbar{ display:none !important; }
 .rv-barfill{ height:100%; border-radius:8px; background:linear-gradient(90deg,var(--lteal),var(--gold)); }
 /* Score mode: the fill reads like the score scale — red (low) → orange → light green → green (top). */
 body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:left center;
-  background-image:linear-gradient(to right,#D23F2C 0%,#D23F2C 16%,#F08A2C 42%,#8CC85C 72%,#3E9E57 100%); }
+  background-image:linear-gradient(to right,#D23F2C 0%,#D23F2C 14%,#F08A2C 38%,#8CC85C 60%,#3E9E57 100%); }
 .rv-metrics{ display:flex; flex-wrap:nowrap; justify-content:center; gap:14px 24px; margin-bottom:26px; transform-origin:center; }
 .rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); white-space:nowrap; flex:0 0 auto; }
 .rv-metric .dot{ width:22px; height:22px; }
@@ -311,8 +311,8 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
         <span class="cashonly">Potential earnings shown as $ / $500</span>
         <span class="scoreonly scorekey">Score / 5:
           <span><i style="background:#3E9E57"></i>4.5–5</span>
-          <span><i style="background:#8CC85C"></i>3.5–4</span>
-          <span><i style="background:#F08A2C"></i>1.5–3</span>
+          <span><i style="background:#8CC85C"></i>3–4</span>
+          <span><i style="background:#F08A2C"></i>1.5–2.5</span>
           <span><i style="background:#D23F2C"></i>0–1</span>
         </span>
       </div>
@@ -968,9 +968,9 @@ function canEdit(p){ return userScope==="owner" || userScope===p.location; }
 function CASH(){ return state.cashMode!==false; }          // default ON
 function scoreNum(total){ return Math.round((Number(total)||0)/100*2)/2; }   // 0–5 in half-steps
 function scoreStr(total){ const s=scoreNum(total); return (s%1===0?s.toFixed(0):s.toFixed(1)); }  // "4" or "3.5"
-function scoreClass(total){ const s=scoreNum(total); return s>=4.5?'scg':s>=3.5?'sclg':s>=1.5?'sco':'scr'; }
+function scoreClass(total){ const s=scoreNum(total); return s>=4.5?'scg':s>=3?'sclg':s>=1.5?'sco':'scr'; }
 function scoreBadge(total){ return `<span class="scorebadge ${scoreClass(total)}">${scoreStr(total)} / 5</span>`; }
-function scoreColor(total){ const s=scoreNum(total); return s>=4.5?'#3E9E57':s>=3.5?'#5FA637':s>=1.5?'#E07A1E':'#D23F2C'; }
+function scoreColor(total){ const s=scoreNum(total); return s>=4.5?'#3E9E57':s>=3?'#5FA637':s>=1.5?'#E07A1E':'#D23F2C'; }
 /* a single cell value, rendered for whichever mode is active */
 function valueCell(total){ return CASH() ? `${fmt(total)} <span style="color:var(--mid);font-weight:normal;">/ $500</span>` : scoreBadge(total); }
 function applyCashMode(){
@@ -1382,7 +1382,7 @@ function renderReview(){
       <div class="rv-name">${esc(p.name)}</div>
       <div class="rv-role">${esc(p.role)}</div>
       <div class="rv-total">${CASH() ? `${fmt(p.total)} <span class="rv-of">/ $500</span>` : `<span style="color:${scoreColor(p.total)}">${scoreStr(p.total)}</span> <span class="rv-of">/ 5</span>`}</div>
-      <div class="rv-bar"><div class="rv-barfill" style="width:${Math.min(100,p.total/500*100)}%"></div></div>
+      <div class="rv-bar"><div class="rv-barfill" style="width:${CASH()?Math.min(100,p.total/500*100):Math.max(20,Math.min(100,p.total/500*100))}%"></div></div>
       <div class="rv-metrics">${dots}</div>
       <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
         <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${styleSummary(rv.improve,labels)}</div></div>
