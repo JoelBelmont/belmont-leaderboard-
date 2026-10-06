@@ -101,6 +101,18 @@
   .d100{background:var(--green);} .d50{background:var(--amber);} .d0{background:#cfc8b8;}
   .dprog{background:#fff;border:2px solid var(--lteal);} /* in-progress open dot */
   .tot{font-weight:bold;color:var(--teal);white-space:nowrap;}
+  /* ---- Score mode (Cash Rewards toggle OFF): 1-5/5 color-coded badge ---- */
+  .scorebadge{display:inline-block;font-weight:bold;padding:2px 11px;border-radius:9px;white-space:nowrap;font-size:.95em;line-height:1.35;}
+  .sc5{background:var(--gold);color:#fff;}            /* 5 = gold   */
+  .sc4{background:var(--green);color:#fff;}           /* 4 = green  */
+  .sc3{background:#EBC34B;color:#5a4410;}             /* 3 = yellow */
+  .sc2{background:#E08A3C;color:#fff;}                /* 2 = orange */
+  .sc1{background:var(--red);color:#fff;}             /* 1 = red    */
+  body.scoremode .cashonly{display:none !important;}
+  body:not(.scoremode) .scoreonly{display:none !important;}
+  .btn-cash{background:#6B4E8C;color:#fff;}
+  .scorekey{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+  .scorekey i{display:inline-block;width:13px;height:13px;border-radius:4px;vertical-align:middle;margin-right:3px;}
   table.scores.teamtot{margin-top:0;margin-bottom:2px;}
   table.scores.teamtot td{background:var(--goldlt);border-top:2px solid var(--gold);border-bottom:none;
                           padding:11px 9px;font-size:14.5px;font-weight:bold;color:var(--teal);}
@@ -258,6 +270,7 @@ body.review-mode .toolbar{ display:none !important; }
   <button class="btn-edit" id="toggleBtn" onclick="toggleEdit()">&#9998; Edit scores</button>
   <button class="btn-tv" id="tvBtn" onclick="enterTV()">&#128250; Display for TV</button>
   <button class="btn-review" id="reviewBtn" onclick="enterReview()">&#127916; Month in Review</button>
+  <button class="btn-cash" id="cashBtn" style="display:none;" onclick="toggleCash()"></button>
 </div>
 <button id="tvExit" onclick="exitTV()">&#10005; Exit TV</button>
 <div id="reviewView" class="hidden"></div>
@@ -270,9 +283,9 @@ body.review-mode .toolbar{ display:none !important; }
       <div class="podium" id="podium"></div>
     </div>
     <div class="card">
-      <h2><span class="ico">&#11088;</span> The $500 Gold Club</h2>
+      <h2><span class="ico">&#11088;</span> <span class="cashonly">The $500 Gold Club</span><span class="scoreonly">The Perfect 5/5 Club</span></h2>
       <div class="club" id="goldclub"></div>
-      <p class="note" style="margin-top:14px;text-align:left;">Everyone on track for all five metrics this month &mdash; a full $500 in potential earnings.</p>
+      <p class="note" style="margin-top:14px;text-align:left;">Everyone on track for all five metrics this month &mdash; <span class="cashonly">a full $500 in potential earnings.</span><span class="scoreonly">a perfect 5 / 5.</span></p>
     </div>
     <div class="card">
       <h2><span class="ico">&#128293;</span> Streaks &mdash; Consecutive Gold Months</h2>
@@ -283,7 +296,7 @@ body.review-mode .toolbar{ display:none !important; }
       <div id="mostimproved"></div>
     </div>
     <div class="card full">
-      <h2><span class="ico">&#128202;</span> The Whole Team &mdash; Potential Earnings This Month</h2>
+      <h2><span class="ico">&#128202;</span> The Whole Team &mdash; <span class="cashonly">Potential Earnings This Month</span><span class="scoreonly">Scores This Month</span></h2>
       <div id="layoutBar" class="layoutbar hidden"></div>
       <div id="layoutHint" class="layouthint hidden">Drag the handles to resize columns &mdash; changes apply to all three tables together. <button class="btn-mini2" onclick="resetWidths()">Reset widths</button> <button class="btn-mini2 done" onclick="toggleLayout()">Done</button></div>
       <div id="roleSections"></div>
@@ -293,7 +306,14 @@ body.review-mode .toolbar{ display:none !important; }
         <span><span class="dot d0"></span> Missed</span>
         <span><span class="dot dprog"></span> In progress</span>
         <span class="sep"></span>
-        <span>Potential earnings shown as $ / $500</span>
+        <span class="cashonly">Potential earnings shown as $ / $500</span>
+        <span class="scoreonly scorekey">Score / 5:
+          <span><i style="background:var(--gold)"></i>5</span>
+          <span><i style="background:var(--green)"></i>4</span>
+          <span><i style="background:#EBC34B"></i>3</span>
+          <span><i style="background:#E08A3C"></i>2</span>
+          <span><i style="background:var(--red)"></i>1</span>
+        </span>
       </div>
     </div>
   </div>
@@ -302,7 +322,7 @@ body.review-mode .toolbar{ display:none !important; }
     <p style="font-size:13.5px;color:var(--slate);margin-bottom:14px;">A miss isn&rsquo;t always the end of the month. Where the value can still be recovered, you can make it right and earn partial credit back. Where the value is time-sensitive and permanently lost &mdash; documentation that had to be captured on site, an estimate that had to go out same-day, a no-call/no-show that left the team short &mdash; it can&rsquo;t be made up. That&rsquo;s the line: recoverable value can be earned back; lost value can&rsquo;t.</p>
     <div class="makeup-grid">
       <div class="makeup-col cancol">
-        <div class="canhead"><span>&#10003;</span> Can be made up <span class="restore">&rarr; restores to Partial ($50)</span></div>
+        <div class="canhead"><span>&#10003;</span> Can be made up <span class="restore">&rarr; restores to Partial<span class="cashonly"> ($50)</span></span></div>
         <div id="canList"></div>
       </div>
       <div class="makeup-col cantcol">
@@ -310,13 +330,13 @@ body.review-mode .toolbar{ display:none !important; }
         <div id="cantList"></div>
       </div>
     </div>
-    <p style="font-size:12px;color:var(--mid);margin-top:12px;font-style:italic;">A successful makeup restores the metric to Partial ($50) &mdash; it credits the recovery while keeping a clean, first-time Met ($100) meaningful. The Van Reset is the one exception: a full Saturday of warehouse organization / equipment decontamination restores the full $100, reflecting the real extra effort. Makeups are confirmed by management.</p>
+    <p style="font-size:12px;color:var(--mid);margin-top:12px;font-style:italic;">A successful makeup restores the metric to Partial<span class="cashonly"> ($50)</span> &mdash; it credits the recovery while keeping a clean, first-time Met<span class="cashonly"> ($100)</span> meaningful. The Van Reset is the one exception: a full Saturday of warehouse organization / equipment decontamination restores the full value<span class="cashonly"> ($100)</span>, reflecting the real extra effort. Makeups are confirmed by management.</p>
   </div>
   <div class="typekey">
-    <b>How metrics earn:</b> &nbsp;<b>Building</b> metrics (jobsite docs, EOD, water tags, breakfasts, drop-offs) start at $0 and build up as you do them &mdash; an open dot means &ldquo;in progress, still earning.&rdquo; &nbsp;<b>Clean-record</b> metrics (attendance, no reworks, van reset) start the month on track for the full amount and stay green as long as the record stays clean. This way nothing rewards an unwanted event, and the open dots early in the month simply mean the month is still young.
+    <b>How metrics <span class="cashonly">earn</span><span class="scoreonly">count</span>:</b> &nbsp;<b>Building</b> metrics (jobsite docs, EOD, water tags, breakfasts, drop-offs) start at <span class="cashonly">$0</span><span class="scoreonly">zero</span> and build up as you do them &mdash; an open dot means &ldquo;in progress, still <span class="cashonly">earning</span><span class="scoreonly">building</span>.&rdquo; &nbsp;<b>Clean-record</b> metrics (attendance, no reworks, van reset) start the month on track for the full <span class="cashonly">amount</span><span class="scoreonly">score</span> and stay green as long as the record stays clean. This way nothing rewards an unwanted event, and the open dots early in the month simply mean the month is still young.
   </div>
-  <p class="note">We celebrate reliability out loud &mdash; and keep the coaching private. This board highlights achievement and progress; it never ranks anyone last. Not in the Gold Club yet? It&rsquo;s a club you can join this month.</p>
-  <div class="foot">Belmont Clean + Restore &mdash; Reliability Premium Framework &middot; Five metrics, up to $500/month + $300 quarterly streak &middot; Each role has its own scorecard<br><span style="display:inline-block;margin-top:8px;max-width:1000px;">Figures shown are <b>potential earnings</b>, not amounts yet earned. Nothing is considered earned until the four-week period is complete and the results are confirmed by management. Any bonus amount earned is added to the first paycheck after the four-week period concludes. This is a discretionary program and may be modified or discontinued at any time.</span></div>
+  <p class="note">We celebrate reliability out loud &mdash; and keep the coaching private. This board highlights achievement and progress; it never ranks anyone last. Not in the <span class="cashonly">Gold Club</span><span class="scoreonly">Perfect 5/5 Club</span> yet? It&rsquo;s a club you can join this month.</p>
+  <div class="foot">Belmont Clean + Restore &mdash; Reliability Premium Framework &middot; <span class="cashonly">Five metrics, up to $500/month + $300 quarterly streak</span><span class="scoreonly">Five metrics, scored 1&ndash;5 each month</span> &middot; Each role has its own scorecard<br><span class="cashonly" style="display:inline-block;margin-top:8px;max-width:1000px;">Figures shown are <b>potential earnings</b>, not amounts yet earned. Nothing is considered earned until the four-week period is complete and the results are confirmed by management. Any bonus amount earned is added to the first paycheck after the four-week period concludes. This is a discretionary program and may be modified or discontinued at any time.</span><span class="scoreonly" style="display:inline-block;margin-top:8px;max-width:1000px;">Scores shown are a running snapshot and aren&rsquo;t final until the four-week period is complete and confirmed by management.</span></div>
 </div>
 
 <!-- ============ EDIT ============ -->
@@ -324,7 +344,7 @@ body.review-mode .toolbar{ display:none !important; }
   <div class="edit-intro">
     <b>How to update (weekly is ideal):</b> Use the <b>&#8249; &#8250; arrows</b> at the top to pick the month, then set <b>which week</b> you&rsquo;re in. Metric names and the &ldquo;Making It Right&rdquo; rules belong to the month you are viewing &mdash; changing them here never touches a past month. For each person, set each metric to
     <b>In progress</b> (still earning / clean so far), <b>Met</b>, <b>Partial</b>, or <b>Missed</b>. Leave &ldquo;building&rdquo; metrics on <b>In progress</b> until earned;
-    leave &ldquo;clean-record&rdquo; metrics on <b>In progress</b> too &mdash; they only change if something happens. <b>Streak</b> = consecutive perfect $500 months. <b>Last mo. $</b> feeds &ldquo;Most Improved.&rdquo;
+    leave &ldquo;clean-record&rdquo; metrics on <b>In progress</b> too &mdash; they only change if something happens. <b>Streak</b> = consecutive perfect <span class="cashonly">$500</span><span class="scoreonly">5/5</span> months. The month-over-month change feeds &ldquo;Most Improved.&rdquo;
     Click <b>Save &amp; View</b> when done. Saves to this computer automatically.
   </div>
   <div class="editctx" id="editctx"></div>
@@ -682,6 +702,8 @@ function syncEditBtn(){
   if(lb) lb.style.display = (userScope==="viewer") ? "none" : "";
   const rb=document.getElementById('reviewBtn');
   if(rb) rb.style.display = (userScope==="viewer") ? "none" : "";
+  const cb=document.getElementById('cashBtn');
+  if(cb) cb.style.display = (userScope==="owner") ? "" : "none";   // only the owner can switch modes
 }
 
 function distinctLabels(M){
@@ -714,7 +736,7 @@ function renderMakeup(M){
   distinctLabels(M).forEach(l=>{
     const m=M.makeup[l]||{can:"no",note:""};
     const note=m.note?` &mdash; ${esc(m.note)}`:"";
-    if(m.can==="full") canH+=`<div class="mu-item full100"><b>${esc(l)}</b>${note} <span class="r100">&rarr; restores to full ($100)</span></div>`;
+    if(m.can==="full") canH+=`<div class="mu-item full100"><b>${esc(l)}</b>${note} <span class="r100">&rarr; restores to full${CASH()?' ($100)':''}</span></div>`;
     else if(m.can==="partial") canH+=`<div class="mu-item"><b>${esc(l)}</b>${note}</div>`;
     else cantH+=`<div class="mu-item"><b>${esc(l)}</b>${note}</div>`;
   });
@@ -733,8 +755,8 @@ function buildMakeupEditor(wrap, M, locked){
     h+=`<tr><td class="name-col">${esc(l)}</td>
       <td><select class="mk-can" data-mk="${esc(l)}"${dis}>
         <option value="no"${m.can==="no"?" selected":""}>No — can’t be made up</option>
-        <option value="partial"${m.can==="partial"?" selected":""}>Yes — back to $50</option>
-        <option value="full"${m.can==="full"?" selected":""}>Yes — back to $100</option>
+        <option value="partial"${m.can==="partial"?" selected":""}>Yes — back to Partial${CASH()?" ($50)":""}</option>
+        <option value="full"${m.can==="full"?" selected":""}>Yes — back to full${CASH()?" ($100)":""}</option>
       </select></td>
       <td><input class="txt mk-note" data-mk="${esc(l)}" value="${esc(m.note||"")}" placeholder="short explanation"${dis}></td></tr>`;
   });
@@ -892,6 +914,7 @@ function migrate(){
     pendingIdSave = true;   // the reshaped board needs one write
   }
   // ---- ongoing, additive only ----
+  if(state.cashMode===undefined) state.cashMode=true;   // existing boards keep the dollar view
   if(!state.people) state.people=[];
   state.people.forEach(p=>{
     if(!p.id){ p.id=genId(); pendingIdSave=true; }
@@ -936,6 +959,32 @@ const fmt=n=>"$"+(Number(n)||0).toLocaleString();
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function canEdit(p){ return userScope==="owner" || userScope===p.location; }
 
+/* ===== CASH REWARDS TOGGLE (owner only) =====
+   ON  = original dollar view ($0–$500 potential earnings).
+   OFF = a plain 1–5/5 score (each metric = 1 point, partials = half), color-coded.
+   The underlying data is identical in both modes — score = total$ / 100 — so toggling
+   back to Cash mode always picks up exactly where YTD/earnings left off. */
+function CASH(){ return state.cashMode!==false; }          // default ON
+function scoreNum(total){ return Math.round((Number(total)||0)/100*2)/2; }   // 0–5 in half-steps
+function scoreStr(total){ const s=scoreNum(total); return (s%1===0?s.toFixed(0):s.toFixed(1)); }  // "4" or "3.5"
+function scoreClass(total){ const s=scoreNum(total); return s>=4.5?'sc5':s>=3.5?'sc4':s>=2.5?'sc3':s>=1.5?'sc2':'sc1'; }
+function scoreBadge(total){ return `<span class="scorebadge ${scoreClass(total)}">${scoreStr(total)} / 5</span>`; }
+function scoreColor(total){ const s=scoreNum(total); return s>=4.5?'var(--gold)':s>=3.5?'var(--green)':s>=2.5?'#C79A1E':s>=1.5?'#E08A3C':'var(--red)'; }
+/* a single cell value, rendered for whichever mode is active */
+function valueCell(total){ return CASH() ? `${fmt(total)} <span style="color:var(--mid);font-weight:normal;">/ $500</span>` : scoreBadge(total); }
+function applyCashMode(){
+  document.body.classList.toggle('scoremode', !CASH());
+  const b=document.getElementById('cashBtn');
+  if(b){ b.innerHTML = CASH() ? 'Points: OFF' : 'Points: ON'; }
+}
+function toggleCash(){
+  if(userScope!=="owner") return;                 // owner-only switch
+  state.cashMode = !CASH();
+  persist();
+  applyCashMode();
+  if(editing) buildEditor(); else render();
+}
+
 /* metric TYPE (clean-record vs build) — stored per month, falls back to ROLE_SETS defaults */
 function roleSetClean(gk){ return (ROLE_SETS[gk]?ROLE_SETS[gk].metrics:[]).map(m=>m.type==="clean"); }
 function typesFor(k,gk){ const m=state.months&&state.months[k]; const t=m&&m.types&&m.types[gk]; return (Array.isArray(t)&&t.length===5)?t.map(v=>!!v):roleSetClean(gk); }
@@ -952,6 +1001,7 @@ function isPerfect(p){ const types=typesFor(viewMonth,p.group); return p.scores.
 /* ===== DISPLAY ===== */
 function render(){
   buildMonthNav();
+  applyCashMode();
   const M=curMonth(); if(!M) return;
 
   // week indicator
@@ -1005,13 +1055,15 @@ function render(){
       <div style="font-size:14px;color:var(--mid);margin-top:6px;font-style:italic;">The month is still young &mdash; the podium fills in as front-runners pull ahead.</div></div>`;
   } else {
     order.forEach(idx=>{ (tiers[idx]||[]).forEach(p=>{ const d=document.createElement('div'); d.className="pod "+classes[idx];
-      d.innerHTML=`<div class="medal">${medals[idx]}</div><div class="bar"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role)}</div><div class="amt">${fmt(p.total)}</div><div class="rank">${lbls[idx]} &middot; of $500</div></div>`; pod.appendChild(d); }); });
+      const podAmt = CASH() ? fmt(p.total) : (scoreStr(p.total)+' / 5');
+      const podOf  = CASH() ? 'of $500' : 'of 5';
+      d.innerHTML=`<div class="medal">${medals[idx]}</div><div class="bar"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role)}</div><div class="amt">${podAmt}</div><div class="rank">${lbls[idx]} &middot; ${podOf}</div></div>`; pod.appendChild(d); }); });
   }
 
   // gold club
   const club=document.getElementById('goldclub'); club.innerHTML="";
   const golds=data.filter(p=>p.perfect);
-  if(!golds.length) club.innerHTML='<span class="empty">No perfect $500 months yet &mdash; be the first!</span>';
+  if(!golds.length) club.innerHTML=`<span class="empty">${CASH()?'No perfect $500 months yet':'No perfect 5/5 months yet'} &mdash; be the first!</span>`;
   else golds.forEach(p=>{const c=document.createElement('div');c.className="chip";c.innerHTML=`<span style="color:var(--gold)">&#11088;</span> ${esc(p.name)}`;club.appendChild(c);});
 
   // streaks
@@ -1019,7 +1071,7 @@ function render(){
   const st=data.filter(p=>p.goldStreak>=2).sort((a,b)=>b.goldStreak-a.goldStreak);
   if(!st.length) se.innerHTML='<span class="empty">No multi-month streaks going right now &mdash; this is how they start.</span>';
   else st.forEach(p=>{const fl="&#128293;".repeat(Math.min(p.goldStreak,6));
-    const msg=p.goldStreak>=3?"Streak bonus earned!":(3-p.goldStreak)+" more for the $300 bonus";
+    const msg=p.goldStreak>=3?(CASH()?"Streak bonus earned!":"Streak milestone reached!"):(3-p.goldStreak)+(CASH()?" more for the $300 bonus":" more for the streak milestone");
     const r=document.createElement('div');r.className="streak";
     r.innerHTML=`<div><div class="who">${esc(p.name)}</div><div class="lbl">${msg}</div></div><div class="flames">${fl} <span style="font-size:14px;color:var(--slate);">${p.goldStreak} mo</span></div>`;se.appendChild(r);});
 
@@ -1027,7 +1079,10 @@ function render(){
   const mi=document.getElementById('mostimproved');
   const imp=data.filter(p=>p.lastMonthTotal!==null && p.improved>0).sort((a,b)=>b.improved-a.improved);
   if(!imp.length) mi.innerHTML='<p class="empty">Most Improved highlights the biggest jump from last month &mdash; check back as the month fills in.</p>';
-  else {const p=imp[0]; mi.innerHTML=`<div class="mi"><div class="big">&#128640;</div><div><div class="nm">${esc(p.name)} &mdash; up ${fmt(p.improved)} from ${esc(keyLabel(p.prevKey))}</div><div class="delta">${esc(p.role)} &middot; climbed from ${fmt(p.lastMonthTotal)} to ${fmt(p.total)}. That&rsquo;s the direction that counts.</div></div></div>`;}
+  else {const p=imp[0];
+    const upBy = CASH() ? fmt(p.improved) : (scoreStr(p.improved)+(scoreNum(p.improved)===1?" pt":" pts"));
+    const fromTo = CASH() ? `${fmt(p.lastMonthTotal)} to ${fmt(p.total)}` : `${scoreStr(p.lastMonthTotal)} / 5 to ${scoreStr(p.total)} / 5`;
+    mi.innerHTML=`<div class="mi"><div class="big">&#128640;</div><div><div class="nm">${esc(p.name)} &mdash; up ${upBy} from ${esc(keyLabel(p.prevKey))}</div><div class="delta">${esc(p.role)} &middot; climbed from ${fromTo}. That&rsquo;s the direction that counts.</div></div></div>`;}
 
   // role sections
   const rs=document.getElementById('roleSections'); rs.innerHTML="";
@@ -1039,14 +1094,14 @@ function render(){
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     let html=`<table class="scores"><colgroup>${cg}</colgroup><tr><th class="rolecol" style="background:${roleColor};">${esc(set.label)}</th>`;
     set.metrics.forEach((m,i)=> html+=`<th class="c">${esc(M.labels[gk][i])}</th>`);
-    html+='<th class="c">Current Potential</th></tr>';
+    html+=`<th class="c">${CASH()?'Current Potential':'Score'}</th></tr>`;
     const dotTypes=typesFor(viewMonth,gk);
     members.forEach(p=>{
       html+=`<tr><td class="nm-cell">${esc(p.name)}${p.perfect?' <span style="color:var(--gold)">&#11088;</span>':''}</td>`;
       p.scores.forEach((s,i)=>{ const st=cellStatus(s, dotTypes[i]);
         const cls=st==="met"?'d100':st==="part"?'d50':st==="miss"?'d0':'dprog';
         html+=`<td class="c"><span class="dot ${cls}"></span></td>`;});
-      html+=`<td class="c tot">${fmt(p.total)} <span style="color:var(--mid);font-weight:normal;">/ $500</span></td></tr>`;
+      html+=`<td class="c tot">${valueCell(p.total)}</td></tr>`;
     });
     html+='</table>'; sec.innerHTML=html; rs.appendChild(sec);
   });
@@ -1057,9 +1112,13 @@ function render(){
     const teamMax    = data.length * 500;
     const cg = state.colWidths.map(w=>`<col style="width:${w}%">`).join("");
     const tt = document.createElement('div'); tt.className="rolesec";
+    const teamCell = CASH()
+      ? `${fmt(teamEarned)} <span class="of">/ ${fmt(teamMax)}</span>`
+      : scoreBadge(teamEarned/data.length);
+    const teamLabel = CASH() ? "Team Total" : "Team Average";
     tt.innerHTML = `<table class="scores teamtot"><colgroup>${cg}</colgroup>
-      <tr><td colspan="6">Team Total &mdash; ${esc(LOCATIONS[viewLoc]||"")} <span class="cnt">&middot; ${data.length} ${data.length===1?"person":"people"}</span></td>
-          <td class="c tot">${fmt(teamEarned)} <span class="of">/ ${fmt(teamMax)}</span></td></tr></table>`;
+      <tr><td colspan="6">${teamLabel} &mdash; ${esc(LOCATIONS[viewLoc]||"")} <span class="cnt">&middot; ${data.length} ${data.length===1?"person":"people"}</span></td>
+          <td class="c tot">${teamCell}</td></tr></table>`;
     rs.appendChild(tt);
   }
   renderMakeup(M);
@@ -1308,6 +1367,7 @@ function buildReviewOrder(){
   return list;   // least performer first, builds up to the best
 }
 function renderReview(){
+  applyCashMode();
   const M=curMonth(); if(!M) return;
   const p=reviewOrder[reviewIdx]; if(!p) return;
   const types=typesFor(viewMonth,p.group), labels=M.labels[p.group]||[], rv=reviewText(p,M);
@@ -1320,7 +1380,7 @@ function renderReview(){
     <div class="rv-card">
       <div class="rv-name">${esc(p.name)}</div>
       <div class="rv-role">${esc(p.role)}</div>
-      <div class="rv-total">${fmt(p.total)} <span class="rv-of">/ $500</span></div>
+      <div class="rv-total">${CASH() ? `${fmt(p.total)} <span class="rv-of">/ $500</span>` : `<span style="color:${scoreColor(p.total)}">${scoreStr(p.total)}</span> <span class="rv-of">/ 5</span>`}</div>
       <div class="rv-bar"><div class="rv-barfill" style="width:${Math.min(100,p.total/500*100)}%"></div></div>
       <div class="rv-metrics">${dots}</div>
       <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
@@ -1383,12 +1443,14 @@ function reviewNext(){ if(reviewIdx<reviewOrder.length-1){ reviewIdx++; renderRe
 function reviewPrev(){ if(reviewIdx>0){ reviewIdx--; renderReview(); maybeCelebrate(); } }
 function maybeCelebrate(){
   const p=reviewOrder[reviewIdx]; if(!p) return;
-  const tier = p.total>=500?3 : p.total>=400?2 : p.total>=300?1 : 0;
+  const tier = p.total>400 ? 3 : p.total>300 ? 2 : p.total>=300 ? 1 : 0;   // >$400 → $500 finale, >$300 → $400 celebration
   if(!tier) return;
   confettiBurst(tier); playCelebration(tier);
-  if(tier===3) setTimeout(()=>confettiBurst(3), 2800);   // second burst for the extended $500 finale
+  if(tier===3) setTimeout(()=>confettiBurst(3), 2800);   // second burst for the extended top-tier finale
   const b=document.createElement('div'); b.className='rv-celebrate t'+tier;
-  b.innerHTML = tier===3?'&#127881; $500 — PERFECT MONTH! &#127881;' : tier===2?'&#127881; $400! &#127881;' : '&#127881; $300!';
+  b.innerHTML = CASH()
+    ? ((p.total>=500) ? '&#127881; $500 — PERFECT MONTH! &#127881;' : ('&#127881; '+fmt(p.total)+'! &#127881;'))
+    : ((p.total>=500) ? '&#127881; 5/5 — PERFECT MONTH! &#127881;' : ('&#127881; '+scoreStr(p.total)+' / 5! &#127881;'));
   document.getElementById('reviewView').appendChild(b);
   setTimeout(()=>b.remove(), tier===3?5500:tier===2?3000:2200);
 }
@@ -1524,6 +1586,7 @@ async function openEdit(){
   buildEditor();
 }
 function buildEditor(){
+  applyCashMode();
   const wrap=document.getElementById('editSets'); wrap.innerHTML="";
   const M=curMonth(); if(!M) return;
   const locked = !canEditMonth(viewMonth);
@@ -1549,7 +1612,7 @@ function buildEditor(){
     const block=document.createElement('div'); block.className="setblock";
     let h=`<h3>${set.label} scorecard</h3><table class="editor"><tr><th class="name-col">Name</th><th>Role title</th><th>Location</th>`;
     set.metrics.forEach((m,mi)=> h+=`<th class="metric lbl-edit"><input data-lbl-g="${gk}" data-lbl-i="${mi}" value="${esc(M.labels[gk][mi])}" placeholder="Metric ${mi+1}"${locked?" disabled":""}><br><select class="typesel" data-typ-g="${gk}" data-typ-i="${mi}"${locked?" disabled":""}><option value="build"${mtypes[mi]?"":" selected"}>Build ($0 up)</option><option value="clean"${mtypes[mi]?" selected":""}>Clean-record (full)</option></select>${m.band==="binary"?'<br><span style="font-size:9px;opacity:.7;">hit/miss</span>':''}</th>`);
-    h+=`<th class="c" title="Live total for ${esc(M.label)} — still changing until the month closes">This month</th><th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th title="Bonuses from completed, paid-out months this year — excludes ${esc(M.label)} while it is still in progress">YTD paid</th><th></th><th>Log</th></tr>`;
+    h+=`<th class="c" title="Live ${CASH()?'total':'score'} for ${esc(M.label)} — still changing until the month closes">This month</th><th title="${isEarliest?"Perfect months earned before this board started":"Consecutive completed perfect months — calculated"}">Streak</th><th class="cashonly" title="Bonuses from completed, paid-out months this year — excludes ${esc(M.label)} while it is still in progress">YTD paid</th><th></th><th>Log</th></tr>`;
     members.forEach(p=>{
       const editable = !locked && canEdit(p); const dis = editable ? "" : " disabled";
       const lockNote = editable ? "" : ` title="${esc(locked ? M.label+" is read-only" : (LOCATIONS[p.location]||p.location)+" — outside your edit access")}"`;
@@ -1564,16 +1627,16 @@ function buildEditor(){
         const isCln=!!mtypes[si];
         const cls = cur==="IP"?(isCln?"s100":"sNA"):cur==="100"?"s100":cur==="50"?"s50":"s0";
         h+=`<td><select class="${cls}" data-clean="${isCln?1:0}" data-p="${p.id}" data-s="${si}" onchange="recolor(this)"${dis}>
-            <option value="IP"${cur==="IP"?" selected":""}>${isCln?"On track (full)":"In progress ($0)"}</option>
+            <option value="IP"${cur==="IP"?" selected":""}>${isCln?"On track (full)":(CASH()?"In progress ($0)":"In progress (0)")}</option>
             <option value="100"${cur==="100"?" selected":""}>Met</option>`;
         if(m.band!=="binary") h+=`<option value="50"${cur==="50"?" selected":""}>Partial</option>`;
         h+=`<option value="0"${cur==="0"?" selected":""}>Missed</option></select></td>`;
       });
-      h+=`<td class="c"><span style="font-weight:bold;color:var(--teal);">${fmt(totalIn(viewMonth,p.id)||0)}</span></td>
+      h+=`<td class="c">${CASH()?`<span style="font-weight:bold;color:var(--teal);">${fmt(totalIn(viewMonth,p.id)||0)}</span>`:scoreBadge(totalIn(viewMonth,p.id)||0)}</td>
           <td>${isEarliest
             ? `<input class="num" data-f="seedStreak" data-p="${p.id}" type="number" min="0" value="${Number(p.seedStreak)||0}"${dis}>`
             : `<span class="calc">${streakAt(viewMonth,p.id)}</span>`}</td>
-          <td><span class="calc" title="${esc(ytdBreakdown(p.id,viewMonth))}">${fmt(ytdTotal(p.id,viewMonth))}</span></td>
+          <td class="cashonly"><span class="calc" title="${esc(ytdBreakdown(p.id,viewMonth))}">${fmt(ytdTotal(p.id,viewMonth))}</span></td>
           <td>${editable?`<button class="btn-del" onclick="removePerson('${p.id}')">Remove</button>`:'<span style="font-size:11px;color:var(--mid);">view&nbsp;only</span>'}</td>
           <td>${(!locked && canEdit(p))?`<button type="button" class="btn-log" title="${(incidentsByPerson[p.id]||[]).length} entries in total across all months" onclick="toggleLog('${p.id}')">&#128221; Log (${entriesFor(p.id).length})</button>`:''}</td></tr>`;
       if(editable && expandedLog===p.id) h+=logPanelHtml(p);
@@ -1716,7 +1779,7 @@ function buildLayoutBar(){
   const bar=document.getElementById('layoutBar'); bar.innerHTML="";
   state.colWidths.forEach((w,i)=>{
     const seg=document.createElement('div'); seg.className="seg"; seg.dataset.seg=i;
-    seg.style.flex=w+" 0 0"; seg.textContent=COL_LABELS[i];
+    seg.style.flex=w+" 0 0"; seg.textContent=(i===6 && !CASH())?"Score":COL_LABELS[i];
     bar.appendChild(seg);
     if(i<state.colWidths.length-1){
       const h=document.createElement('div'); h.className="handle"; h.dataset.handle=i;

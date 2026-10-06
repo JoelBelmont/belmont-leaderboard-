@@ -191,6 +191,22 @@ It is not in `GROUPS` and should not be assigned to new people.
   sounds (`playCelebration` → `celebrate300` Grand Fanfare / `celebrate400` Victory Jingle / `celebrate500`
   extended Chime-Cascade finale; audio unlocked on the launch click; a 2nd confetti burst fires mid-$500
   finale). Chrome hidden via `body.review-mode`.
+- **Cash Rewards toggle (owner only).** A 💰 "Cash Rewards: ON/OFF" button in the toolbar (shown only
+  when `userScope==="owner"` via `syncEditBtn`; stored as `state.cashMode`, default `true`, migrated onto
+  existing boards). **ON** = the original dollar view ($0–$500 potential earnings, YTD paid, streak
+  bonuses). **OFF** = a plain **1–5 / 5 score** with half-steps (e.g. `3.5 / 5`), color-coded by
+  `scoreClass`: **5 gold, 4 green, 3 yellow, 2 orange, 1 red**. The score is simply `total$ / 100`
+  (`scoreNum`/`scoreStr`/`scoreBadge`/`scoreColor`), so **no data changes** — toggling back to Cash mode
+  picks up YTD/earnings exactly where it left off (verified: scores + cashMode persist through toggles).
+  Implementation: `CASH()` gate + `valueCell(total)` everywhere a per-person total renders (role tables,
+  podium, team row → "Team **Average** X/5" in score mode, Most Improved, review card rv-total colored by
+  level, editor "This month" cell, celebration banner). Static cash text swaps via paired
+  `<span class="cashonly">`/`<span class="scoreonly">` toggled by `body.scoremode` CSS (Gold Club → "Perfect
+  5/5 Club", legend color key, "Making It Right" $50/$100 notes, typekey, footer disclaimer, edit intro).
+  **YTD paid column is hidden** in score mode (decision: data untouched, reappears in Cash mode). Makeup
+  dropdowns drop the "($50)/($100)". `applyCashMode()` runs at the top of `render`/`buildEditor`/`renderReview`.
+  Celebrations stay tied to the same thresholds (score tracks dollars 1:1). Why: cash rewards were creating
+  animosity; score mode keeps the motivation without the money.
 - **Adjustable column widths**, drag-to-resize, persisted in `state.colWidths`.
 - **Team total row.** A gold summary row under the last role table showing earned vs. possible for
   the visible team (e.g. `$2,700 / $7,000`), sharing the score tables' `colgroup` so it stays
