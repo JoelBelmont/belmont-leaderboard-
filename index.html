@@ -1371,6 +1371,7 @@ function renderEos(){
     +(daysLeft!==''?'<div class="eos-cd"><b>'+daysLeft+'</b><span>DAYS LEFT</span></div>':'')+'</div>';
 
   const ranked=withRocks.map(p=>({p, done:personRocks(p.id).filter(r=>rockCurrent(r)==='done').length, pct:personPct(p.id), streak:Math.max(0,...personRocks(p.id).map(rockTrailGreen))}))
+    .filter(x=>x.pct>=70)                                                           // only real standouts earn a spot — nobody at a low % is a "Rock Star"
     .sort((a,b)=> b.pct-a.pct || b.done-a.done || b.streak-a.streak).slice(0,3);  // on-pace % leads, so finishing one easy Rock can't mask dropping bigger ones
   if(ranked.length){
     const medals=["&#129351;","&#129352;","&#129353;"];
