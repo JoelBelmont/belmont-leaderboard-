@@ -1334,7 +1334,7 @@ function renderEos(){
     +(daysLeft!==''?'<div class="eos-cd"><b>'+daysLeft+'</b><span>DAYS LEFT</span></div>':'')+'</div>';
 
   const ranked=withRocks.map(p=>({p, done:personRocks(p.id).filter(r=>rockCurrent(r)==='done').length, pct:personPct(p.id), streak:Math.max(0,...personRocks(p.id).map(rockTrailGreen))}))
-    .sort((a,b)=> b.done-a.done || b.pct-a.pct || b.streak-a.streak).slice(0,3);
+    .sort((a,b)=> b.pct-a.pct || b.done-a.done || b.streak-a.streak).slice(0,3);  // on-pace % leads, so finishing one easy Rock can't mask dropping bigger ones
   if(ranked.length){
     const medals=["&#129351;","&#129352;","&#129353;"];
     html+='<div class="eos-sechd"><span>&#11088;</span> Rock Stars This Week</div><div class="eos-stars">';
