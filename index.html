@@ -311,7 +311,29 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosEditView .eos-rtitle{ flex:1 1 260px; min-width:220px; }
   #eosEditView .eos-sel{ font-weight:700; }
   #eosEditView .eos-sel.on{ background:#e6f3ea; } #eosEditView .eos-sel.off{ background:#f8e6e2; } #eosEditView .eos-sel.done{ background:var(--goldlt); }
-  body.tv-mode #eosView{ transform-origin:top center; }
+  #eosEditView .eos-drag{ cursor:grab; color:var(--mid); font-size:17px; line-height:1; padding:0 4px; user-select:none; flex:0 0 auto; }
+  #eosEditView .eos-drag:active{ cursor:grabbing; }
+  #eosEditView .eos-drag-off{ color:var(--line); cursor:default; }
+  #eosEditView .eos-erock.dragging{ opacity:.45; }
+  #eosEditView .eos-erock.dragover{ border-top:2px solid var(--teal); }
+  /* TV / kiosk: fill the full 16:9 width instead of a centered column — spread cards to the sides */
+  body.tv-mode #eosView{ transform-origin:top center; max-width:none; }
+  body.tv-mode #eosView .eos-grid{ grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:16px; align-items:start; }
+  body.tv-mode #eosView .eos-sechd{ margin:14px 0 8px; font-size:20px; }
+  body.tv-mode #eosView .eos-top{ margin-bottom:6px; }
+  /* shrink the top band + card spacing so the whole board scales up to fill the screen */
+  body.tv-mode #eosView .eos-pulse{ margin-top:10px; padding:12px 18px; gap:16px; }
+  body.tv-mode #eosView .eos-ring{ width:108px; height:108px; }
+  body.tv-mode #eosView .eos-ring:before{ inset:12px; }
+  body.tv-mode #eosView .eos-ring .rv b{ font-size:30px; }
+  body.tv-mode #eosView .eos-tile{ padding:9px 16px; min-width:104px; }
+  body.tv-mode #eosView .eos-tile b{ font-size:26px; }
+  body.tv-mode #eosView .eos-star{ padding:9px 16px; min-width:150px; }
+  body.tv-mode #eosView .pcard{ padding:12px 14px; }
+  body.tv-mode #eosView .rock{ padding:6px 0; }
+  body.tv-mode #eosView .trail{ margin-top:5px; }
+  body.tv-mode #eosView .wkn{ display:none; }
+  body.tv-mode #eosView .eos-legend{ margin-top:12px; }
   .eosrv-badge{ font-size:12px; font-weight:800; border-radius:6px; padding:2px 9px; color:#fff; margin-right:2px; }
   .eosrv-badge.b-on{ background:#3E9E57; } .eosrv-badge.b-off{ background:#D23F2C; } .eosrv-badge.b-done{ background:var(--gold); }
 </style>
@@ -1387,7 +1409,7 @@ function buildEosEditor(){
   h+='</select></span>';
   if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
   h+='</div>';
-  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Everything saves to the shared board.</div>';
+  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Drag the <b>&#9776;</b> handle to reorder someone&rsquo;s Goals. Everything saves to the shared board.</div>';
   const ppl=state.people.filter(p=>p.location===viewLoc).sort((a,b)=>a.name.localeCompare(b.name));
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
   ppl.forEach(p=>{
@@ -1396,7 +1418,9 @@ function buildEosEditor(){
     if(!rocks.length) h+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Goals yet.</div>';
     rocks.forEach(r=>{
       const v=(r.status&&r.status[eosEditWeek-1])||"";
-      h+='<div class="eos-erock"><input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Goal title (the 90-day priority)"'+(editable?'':' disabled')+'>'
+      h+='<div class="eos-erock" ondragover="eosDragOver(event,\''+p.id+'\')" ondragleave="eosDragLeave(event)" ondrop="eosDrop(event,\''+p.id+'\',\''+r.id+'\')">'
+        +((editable && rocks.length>1)?'<span class="eos-drag" draggable="true" title="Drag to reorder" ondragstart="eosDragStart(event,\''+p.id+'\',\''+r.id+'\')" ondragend="eosDragEnd(event)">&#9776;</span>':(rocks.length>1?'<span class="eos-drag eos-drag-off">&#9776;</span>':''))
+        +'<input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Goal title (the 90-day priority)"'+(editable?'':' disabled')+'>'
         +'<select class="eos-sel '+(v||'')+'" data-p="'+p.id+'" data-r="'+r.id+'" data-w="'+(eosEditWeek-1)+'" onchange="eosSel(this)"'+(editable?'':' disabled')+'>'
         +'<option value="">&mdash; not marked</option>'
         +'<option value="on"'+(v==='on'?' selected':'')+'>On Track</option>'
@@ -1423,6 +1447,30 @@ function eosSel(sel){ sel.className='eos-sel '+(sel.value||''); if(sel.value==='
 function eosWeekChange(sel){ collectEosEdits(); eosEditWeek=Number(sel.value)||1; buildEosEditor(); }
 function addRock(pid){ collectEosEdits(); const q=curQuarter(); if(!q.rocks[pid]) q.rocks[pid]=[]; if(q.rocks[pid].length>=4) return; q.rocks[pid].push({id:genId(), title:"", status:new Array(q.weeks).fill("")}); persist(); buildEosEditor(); }
 function removeRock(pid,rid){ collectEosEdits(); const q=curQuarter(); if(q.rocks[pid]) q.rocks[pid]=q.rocks[pid].filter(r=>r.id!==rid); persist(); buildEosEditor(); }
+/* drag-to-reorder a person's Goals (within that person only) */
+let eosDrag=null;
+function eosDragStart(e,pid,rid){ eosDrag={pid,rid}; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',rid); }catch(_){}
+  const row=e.target.closest('.eos-erock'); if(row) row.classList.add('dragging'); }
+function eosDragEnd(e){ eosDrag=null; document.querySelectorAll('#eosEditView .eos-erock').forEach(x=>x.classList.remove('dragging','dragover')); }
+function eosDragOver(e,pid){ if(!eosDrag||eosDrag.pid!==pid) return; e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){}
+  const row=e.currentTarget; document.querySelectorAll('#eosEditView .eos-erock.dragover').forEach(x=>{ if(x!==row) x.classList.remove('dragover'); }); row.classList.add('dragover'); }
+function eosDragLeave(e){ e.currentTarget.classList.remove('dragover'); }
+function eosDrop(e,pid,targetRid){
+  e.preventDefault();
+  if(!eosDrag||eosDrag.pid!==pid){ eosDrag=null; return; }
+  const srcRid=eosDrag.rid; eosDrag=null;
+  document.querySelectorAll('#eosEditView .eos-erock').forEach(x=>x.classList.remove('dragging','dragover'));
+  if(srcRid===targetRid) return;
+  collectEosEdits();                                  // keep any typed titles / statuses
+  const q=curQuarter(); const arr=q&&q.rocks&&q.rocks[pid]; if(!arr) return;
+  const from=arr.findIndex(r=>r.id===srcRid), to=arr.findIndex(r=>r.id===targetRid);
+  if(from<0||to<0) return;
+  const down=from<to;                                 // dropping downward lands just below the target
+  const [moved]=arr.splice(from,1);
+  let idx=arr.findIndex(r=>r.id===targetRid);
+  arr.splice(down?idx+1:idx, 0, moved);
+  persist(); buildEosEditor();
+}
 function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document.getElementById('eosEditView').classList.add('hidden'); const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit Goals"; b.className="btn-edit"; renderEos(); }
 function eosNextQuarter(){ collectEosEdits(); const nk=nextQuarterKey(eosViewQuarter); ensureQuarter(nk); state.eosCurrent=nk; eosViewQuarter=nk; eosEditWeek=1; persist(); buildEosEditor(); }
 
