@@ -770,7 +770,7 @@ function syncEditBtn(){
   const eos=!!state.eosMode;
   const tb=document.getElementById('toggleBtn');
   if(tb && !editing){ const canEd = eos ? (userScope!=="viewer") : canEditMonth(viewMonth);
-    tb.style.display = canEd ? "" : "none"; tb.textContent = eos ? "✎ Edit Rocks" : "✎ Edit scores"; tb.className="btn-edit"; }
+    tb.style.display = canEd ? "" : "none"; tb.textContent = eos ? "✎ Edit Goals" : "✎ Edit scores"; tb.className="btn-edit"; }
   const lb=document.getElementById('layoutBtn');
   if(lb) lb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // layout is leaderboard-only
   const rb=document.getElementById('reviewBtn');
@@ -1303,7 +1303,7 @@ function eosTrailHtml(r, nowWeek, weeks){
 }
 function renderEos(){
   document.body.classList.add('eos-mode');
-  const h1=document.querySelector('.head h1'); if(h1) h1.textContent='Belmont — Quarterly Rocks';
+  const h1=document.querySelector('.head h1'); if(h1) h1.textContent='Belmont — Weekly Goals';
   document.getElementById('displayView').classList.add('hidden');
   document.getElementById('editView').classList.add('hidden');
   document.getElementById('eosEditView').classList.add('hidden');
@@ -1315,14 +1315,14 @@ function renderEos(){
   const ppl=state.people.filter(p=>p.location===viewLoc);
   const withRocks=ppl.filter(p=>personRocks(p.id).length>0);
 
-  let html='<div class="eos-top"><div class="eos-sub">The 90-Day Priorities That Move Us Forward</div>'
+  let html='<div class="eos-top"><div class="eos-sub">The Goals We Move Forward, Week by Week</div>'
     +'<div class="eos-qline"><span class="eos-chip">'+esc(q.label||quarterLabel(eosViewQuarter))+'</span>'
     +'<span class="eos-chip" style="background:#fff;color:var(--teal);border:1.5px solid var(--teal)">'+esc(LOCATIONS[viewLoc]||'')+'</span></div>'
     +'<div class="eos-wk"><div class="lab">Week '+nowWeek+' of '+q.weeks+' &mdash; the quarter is still being earned</div>'
     +'<div class="eos-wktrack"><div class="eos-wkfill" style="width:'+Math.round(nowWeek/q.weeks*100)+'%"></div></div></div></div>';
 
   if(!withRocks.length){
-    html+='<div class="eos-empty">No Rocks set for this team yet.'+(userScope!=='viewer'?' Click &ldquo;Edit Rocks&rdquo; to add them.':'')+'</div>';
+    html+='<div class="eos-empty">No Goals set for this team yet.'+(userScope!=='viewer'?' Click &ldquo;Edit Goals&rdquo; to add them.':'')+'</div>';
     ev.innerHTML=html; fitTV(); return;
   }
   let on=0,off=0,done=0;
@@ -1346,14 +1346,14 @@ function renderEos(){
       html+='<div class="eos-star'+(i===0?' s1':'')+'"><div class="medal">'+medals[i]+'</div><div class="nm">'+esc(x.p.name)+'</div><div class="rl">'+esc(x.p.role)+'</div><div class="stat">'+bits.join(' &middot; ')+'</div></div>'; });
     html+='</div>';
   }
-  html+='<div class="eos-sechd" style="font-size:19px"><span>&#128511;</span> Everyone&rsquo;s Rocks</div><div class="eos-grid">';
+  html+='<div class="eos-sechd" style="font-size:19px"><span>&#128511;</span> Everyone&rsquo;s Goals</div><div class="eos-grid">';
   withRocks.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
     const rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct);
     const dn=rocks.filter(r=>rockCurrent(r)==='done').length, onc=rocks.filter(r=>rockCurrent(r)==='on').length;
     let rk='';
     rocks.forEach(r=>{ const c=rockCurrent(r), st=rockTrailGreen(r); const fl=(c!=='done'&&st>=2)?('<span class="flames">&#128293; '+st+' wks</span>'):'';
-      rk+='<div class="rock"><div class="rtop">'+eosRockBadge(r)+'<span class="rt'+(c==='done'?' doneT':'')+'">'+esc(r.title||'(untitled Rock)')+'</span>'+fl+'</div>'+eosTrailHtml(r,nowWeek,q.weeks)+'</div>'; });
-    const count=(dn?dn+' done · ':'')+onc+' on track · '+rocks.length+' Rock'+(rocks.length===1?'':'s');
+      rk+='<div class="rock"><div class="rtop">'+eosRockBadge(r)+'<span class="rt'+(c==='done'?' doneT':'')+'">'+esc(r.title||'(untitled Goal)')+'</span>'+fl+'</div>'+eosTrailHtml(r,nowWeek,q.weeks)+'</div>'; });
+    const count=(dn?dn+' done · ':'')+onc+' on track · '+rocks.length+' Goal'+(rocks.length===1?'':'s');
     html+='<div class="pcard"><div class="ph"><div><div class="pn">'+esc(p.name)+'</div><div class="pr">'+esc(p.role)+'</div></div>'
       +'<div class="ppct"><b style="color:'+col+'">'+pct+'%</b><span>ON PACE</span></div></div>'
       +'<div class="pbar"><div class="pbarfill" style="width:'+pct+'%;background:'+col+'"></div></div>'
@@ -1387,16 +1387,16 @@ function buildEosEditor(){
   h+='</select></span>';
   if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
   h+='</div>';
-  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Rock to On Track, Off Track, or Done for this week. Marking a Rock <b>Done</b> celebrates it &#127881;. Everything saves to the shared board.</div>';
+  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Everything saves to the shared board.</div>';
   const ppl=state.people.filter(p=>p.location===viewLoc).sort((a,b)=>a.name.localeCompare(b.name));
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
   ppl.forEach(p=>{
     const editable=canEdit(p), rocks=personRocks(p.id);
     h+='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span></div>';
-    if(!rocks.length) h+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Rocks yet.</div>';
+    if(!rocks.length) h+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Goals yet.</div>';
     rocks.forEach(r=>{
       const v=(r.status&&r.status[eosEditWeek-1])||"";
-      h+='<div class="eos-erock"><input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Rock title (the 90-day priority)"'+(editable?'':' disabled')+'>'
+      h+='<div class="eos-erock"><input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Goal title (the 90-day priority)"'+(editable?'':' disabled')+'>'
         +'<select class="eos-sel '+(v||'')+'" data-p="'+p.id+'" data-r="'+r.id+'" data-w="'+(eosEditWeek-1)+'" onchange="eosSel(this)"'+(editable?'':' disabled')+'>'
         +'<option value="">&mdash; not marked</option>'
         +'<option value="on"'+(v==='on'?' selected':'')+'>On Track</option>'
@@ -1405,7 +1405,7 @@ function buildEosEditor(){
         +(editable?'<button class="btn-del" onclick="removeRock(\''+p.id+'\',\''+r.id+'\')">Remove</button>':'')
         +'</div>';
     });
-    if(editable && rocks.length<4) h+='<button class="btn-add" style="margin-top:8px" onclick="addRock(\''+p.id+'\')">&#43; Add Rock'+(rocks.length?' ('+(4-rocks.length)+' left)':'')+'</button>';
+    if(editable && rocks.length<4) h+='<button class="btn-add" style="margin-top:8px" onclick="addRock(\''+p.id+'\')">&#43; Add Goal'+(rocks.length?' ('+(4-rocks.length)+' left)':'')+'</button>';
     h+='</div>';
   });
   wrap.innerHTML=h;
@@ -1423,7 +1423,7 @@ function eosSel(sel){ sel.className='eos-sel '+(sel.value||''); if(sel.value==='
 function eosWeekChange(sel){ collectEosEdits(); eosEditWeek=Number(sel.value)||1; buildEosEditor(); }
 function addRock(pid){ collectEosEdits(); const q=curQuarter(); if(!q.rocks[pid]) q.rocks[pid]=[]; if(q.rocks[pid].length>=4) return; q.rocks[pid].push({id:genId(), title:"", status:new Array(q.weeks).fill("")}); persist(); buildEosEditor(); }
 function removeRock(pid,rid){ collectEosEdits(); const q=curQuarter(); if(q.rocks[pid]) q.rocks[pid]=q.rocks[pid].filter(r=>r.id!==rid); persist(); buildEosEditor(); }
-function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document.getElementById('eosEditView').classList.add('hidden'); const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit Rocks"; b.className="btn-edit"; renderEos(); }
+function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document.getElementById('eosEditView').classList.add('hidden'); const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit Goals"; b.className="btn-edit"; renderEos(); }
 function eosNextQuarter(){ collectEosEdits(); const nk=nextQuarterKey(eosViewQuarter); ensureQuarter(nk); state.eosCurrent=nk; eosViewQuarter=nk; eosEditWeek=1; persist(); buildEosEditor(); }
 
 /* ===== MONTH IN REVIEW MODE ===== */
@@ -1732,12 +1732,12 @@ function maybeCelebrate(){
 
 /* ===== EOS WEEKLY REVIEW (one Rock sheet at a time, coached) ===== */
 const EOS_DONE=[
-  t=>`${t} — done and dusted. Finishing a Rock is a real milestone; take the win.`,
-  t=>`${t} is complete — that's a 90-day priority put to bed. Outstanding.`,
-  t=>`${t} — crossed the finish line. That's exactly what Rocks are for.` ];
+  t=>`${t} — done and dusted. Finishing a Goal is a real milestone; take the win.`,
+  t=>`${t} is complete — that's a Goal put to bed. Outstanding.`,
+  t=>`${t} — crossed the finish line. That's exactly what Goals are for.` ];
 const EOS_ON=[
   t=>`${t} is on track — steady weekly progress is how big goals actually get done. Keep it rolling.`,
-  t=>`${t} — right on pace. Momentum like this is what carries a Rock home.`,
+  t=>`${t} — right on pace. Momentum like this is what carries a Goal home.`,
   t=>`${t} is tracking nicely; stay on it and the finish takes care of itself.` ];
 const EOS_OFF=[
   t=>`${t} slipped off track this week — let's name the one blocker and clear it together.`,
@@ -1747,16 +1747,16 @@ const EOS_NONE=[
   t=>`${t} hasn't been marked yet — a quick status check gets it back on the radar.`,
   t=>`Let's log where ${t} stands so we can keep it moving.`,
   t=>`${t} is waiting on an update — a few minutes now keeps it from drifting.` ];
-const EOS_NOWIN=[ `Fresh week — let's get a Rock or two trending green and build from there.`,
+const EOS_NOWIN=[ `Fresh week — let's get a Goal or two trending green and build from there.`,
                   `Open field this week; let's put some progress on the board together.` ];
-const EOS_ALLGOOD=[ `Every Rock on track — nothing to fix. Phenomenal pace.`,
-                    `Clean sweep on your Rocks this week. Keep it rolling.` ];
+const EOS_ALLGOOD=[ `Every Goal on track — nothing to fix. Phenomenal pace.`,
+                    `Clean sweep on your Goals this week. Keep it rolling.` ];
 const EOS_VALUES={
   responsibility:{name:'Responsibility', lines:[
-    `owning your Rocks and driving them to done is Responsibility you can set your watch by.`,
+    `owning your Goals and driving them to done is Responsibility you can set your watch by.`,
     `everything you commit to, you follow through on. That's Responsibility.` ]},
   initiative:{name:'Initiative', lines:[
-    `you don't wait to be asked — you move your Rocks forward every week. That's Initiative.`,
+    `you don't wait to be asked — you move your Goals forward every week. That's Initiative.`,
     `spotting the next step and taking it is Initiative, pure and simple.` ]},
   stewardship:{name:'Stewardship', lines:[
     `steady, disciplined progress on the priorities that matter is Stewardship in action.`,
@@ -1787,7 +1787,7 @@ function eosReviewText(p){ const q=curQuarter(); const stored=(q&&q.review&&q.re
 function enterEosReview(){
   reviewOrder = state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0)
     .map(p=>Object.assign({},p)).sort((a,b)=> personPct(a.id)-personPct(b.id) || a.name.localeCompare(b.name));  // weakest → strongest
-  if(!reviewOrder.length){ alert("No Rocks to review for this team yet."); return; }
+  if(!reviewOrder.length){ alert("No Goals to review for this team yet."); return; }
   reviewMode=true; eosReview=true; reviewIdx=0; reviewShowSummary=true;
   document.getElementById('eosView').classList.add('hidden');
   document.getElementById('eosEditView').classList.add('hidden');
@@ -1805,7 +1805,7 @@ function renderEosReview(){
   const nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
   let chips='';
   rocks.forEach(r=>{ const c=rockCurrent(r); const cls=c==='done'?'b-done':c==='off'?'b-off':'b-on';
-    chips+=`<div class="rv-metric"><span class="eosrv-badge ${cls}">${c==='done'?'DONE':c==='off'?'OFF':'ON'}</span><span>${esc(r.title||'(untitled Rock)')}</span></div>`; });
+    chips+=`<div class="rv-metric"><span class="eosrv-badge ${cls}">${c==='done'?'DONE':c==='off'?'OFF':'ON'}</span><span>${esc(r.title||'(untitled Goal)')}</span></div>`; });
   const el=document.getElementById('reviewView');
   el.innerHTML = `<button id="rvExit" onclick="exitReview()">&#10005; Exit review</button>
     <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(q.label||'')} &middot; Week ${nowWeek}</div>
