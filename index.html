@@ -1429,7 +1429,8 @@ function buildEosEditor(){
   const isOwner=userScope==="owner";
   let h='<div class="eos-ectrls">'
     +'<span><label style="font-weight:bold;color:var(--teal)">Quarter: </label><input class="txt" id="eosQLabel" style="width:140px" value="'+esc(q.label||'')+'"'+(isOwner?'':' disabled')+'></span>'
-    +'<span><label style="font-weight:bold;color:var(--teal)">Current week (team sees): </label><input class="num" id="eosCurWeek" type="number" min="1" max="'+q.weeks+'" value="'+(Number(q.week)||1)+'" style="width:64px"'+(isOwner?'':' disabled')+'></span>'
+    +'<span><label style="font-weight:bold;color:var(--teal)">Weeks in quarter: </label><input class="num" id="eosWeeksIn" type="number" min="1" max="26" value="'+q.weeks+'" style="width:60px" onchange="eosWeeksChange(this)"'+(isOwner?'':' disabled')+'></span>'
+    +'<span><label style="font-weight:bold;color:var(--teal)">Current week (team sees): </label><input class="num" id="eosCurWeek" type="number" min="1" max="'+q.weeks+'" value="'+(Number(q.week)||1)+'" style="width:60px"'+(isOwner?'':' disabled')+'></span>'
     +'<span><label style="font-weight:bold;color:var(--teal)">Marking week: </label><select id="eosEditWeekSel" onchange="eosWeekChange(this)">';
   for(let w=1;w<=q.weeks;w++) h+='<option value="'+w+'"'+(w===eosEditWeek?' selected':'')+'>Week '+w+'</option>';
   h+='</select></span>';
@@ -1475,6 +1476,7 @@ function collectEosEdits(){
   const q=curQuarter(); if(!q) return;
   if(userScope==="owner"){
     const ql=document.getElementById('eosQLabel'); if(ql) q.label=ql.value||q.label;
+    const wi=document.getElementById('eosWeeksIn'); if(wi){ q.weeks=Math.min(26,Math.max(1,Math.round(Number(wi.value))||q.weeks)); }
     const cw=document.getElementById('eosCurWeek'); if(cw) q.week=Math.min(q.weeks,Math.max(1,Number(cw.value)||1));
   }
   document.querySelectorAll('#eosEditView .eos-rtitle').forEach(inp=>{ const r=findRock(inp.dataset.p,inp.dataset.r); if(r) r.title=inp.value; });
@@ -1482,6 +1484,7 @@ function collectEosEdits(){
 }
 function eosSel(sel){ sel.className='eos-sel '+(sel.value||''); if(sel.value==='done'){ try{ unlockAudio(); confettiBurst(2); playCelebration(2); }catch(e){} } }
 function eosWeekChange(sel){ collectEosEdits(); eosEditWeek=Number(sel.value)||1; buildEosEditor(); }
+function eosWeeksChange(el){ collectEosEdits(); const q=curQuarter(); if(eosEditWeek>q.weeks) eosEditWeek=q.weeks; ensureQuarter(eosViewQuarter); persist(); buildEosEditor(); }
 function addRock(pid){ collectEosEdits(); const q=curQuarter(); if(!q.rocks[pid]) q.rocks[pid]=[]; if(q.rocks[pid].length>=4) return; q.rocks[pid].push({id:genId(), title:"", status:new Array(q.weeks).fill("")}); persist(); buildEosEditor(); }
 function removeRock(pid,rid){ collectEosEdits(); const q=curQuarter(); if(q.rocks[pid]) q.rocks[pid]=q.rocks[pid].filter(r=>r.id!==rid); persist(); buildEosEditor(); }
 /* drag-to-reorder a person's Goals (within that person only) */
