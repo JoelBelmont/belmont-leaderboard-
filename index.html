@@ -279,6 +279,9 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosView .eos-star.s1{ background:var(--goldlt); border-color:var(--gold); }
   #eosView .eos-star .medal{ font-size:28px; } #eosView .eos-star .nm{ font-weight:800; color:var(--teal); font-size:18px; margin-top:2px; } #eosView .eos-star .rl{ font-size:12px; color:var(--mid); } #eosView .eos-star .stat{ margin-top:7px; font-size:12.5px; color:var(--slate); font-weight:600; }
   #eosView .eos-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(500px,1fr)); gap:16px; margin-top:8px; }
+  #eosView .eos-ghead{ grid-column:1 / -1; display:flex; align-items:center; gap:9px; font-weight:800; color:var(--teal); font-size:16px; margin:12px 2px 0; padding-bottom:5px; border-bottom:2px solid var(--line); }
+  #eosView .eos-ghead:first-child{ margin-top:0; }
+  #eosView .eos-ghead .gdot{ width:12px; height:12px; border-radius:3px; display:inline-block; flex:0 0 auto; }
   #eosView .pcard{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px 18px; }
   #eosView .pcard .ph{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   #eosView .pcard .pn{ font-weight:800; color:var(--teal); font-size:20px; }
@@ -326,6 +329,9 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   body.tv-mode #eosView .eos-band{ display:flex; flex-direction:row; gap:26px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; }
   body.tv-mode #eosView .eos-band .eos-pulse{ margin:0; }
   body.tv-mode #eosView .eos-rswrap .eos-sechd{ margin:0 0 6px; }
+  /* TV: keep cards in role order (grouped) but hide the full-width role headers so groups pack
+     tightly and the cards stay large — single-person roles would otherwise waste whole rows */
+  body.tv-mode #eosView .eos-ghead{ display:none; }
   /* shrink the top band + card spacing so the whole board scales up to fill the screen */
   body.tv-mode #eosView .eos-pulse{ margin-top:10px; padding:12px 18px; gap:16px; }
   body.tv-mode #eosView .eos-ring{ width:108px; height:108px; }
@@ -1375,18 +1381,28 @@ function renderEos(){
   }
   html+='</div>';   // close .eos-band — on TV the pulse + Rock Stars share one row
   html+='<div class="eos-sechd" style="font-size:19px"><span>&#128511;</span> Everyone&rsquo;s Goals</div><div class="eos-grid">';
-  withRocks.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+  const cardHtml=(p)=>{
     const rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct);
     const dn=rocks.filter(r=>rockCurrent(r)==='done').length, onc=rocks.filter(r=>rockCurrent(r)==='on').length;
     let rk='';
     rocks.forEach(r=>{ const c=rockCurrent(r), st=rockTrailGreen(r); const fl=(c!=='done'&&st>=2)?('<span class="flames">&#128293; '+st+' wks</span>'):'';
       rk+='<div class="rock"><div class="rtop">'+eosRockBadge(r)+'<span class="rt'+(c==='done'?' doneT':'')+'">'+esc(r.title||'(untitled Goal)')+'</span>'+fl+'</div>'+eosTrailHtml(r,nowWeek,q.weeks)+'</div>'; });
     const count=(dn?dn+' done · ':'')+onc+' on track · '+rocks.length+' Goal'+(rocks.length===1?'':'s');
-    html+='<div class="pcard"><div class="ph"><div><div class="pn">'+esc(p.name)+'</div><div class="pr">'+esc(p.role)+'</div></div>'
+    return '<div class="pcard"><div class="ph"><div><div class="pn">'+esc(p.name)+'</div><div class="pr">'+esc(p.role)+'</div></div>'
       +'<div class="ppct"><b style="color:'+col+'">'+pct+'%</b><span>ON PACE</span></div></div>'
       +'<div class="pbar"><div class="pbarfill" style="width:'+pct+'%;background:'+col+'"></div></div>'
       +'<div class="pcount">'+count+'</div>'+rk+'</div>';
+  };
+  const shown={};   // group by role (GROUPS order), alphabetical within each group — like the leaderboard
+  GROUPS.forEach(gk=>{
+    const members=withRocks.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!members.length) return;
+    const set=ROLE_SETS[gk], gcol=ROLE_COLORS[gk]||'var(--teal)';
+    html+='<div class="eos-ghead" style="border-color:'+gcol+'"><span class="gdot" style="background:'+gcol+'"></span>'+esc((set&&set.label)||gk)+'</div>';
+    members.forEach(p=>{ shown[p.id]=1; html+=cardHtml(p); });
   });
+  const leftover=withRocks.filter(p=>!shown[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(leftover.length){ html+='<div class="eos-ghead"><span class="gdot" style="background:var(--mid)"></span>Team</div>'; leftover.forEach(p=>html+=cardHtml(p)); }
   html+='</div>';
   html+='<div class="eos-legend"><span><i style="background:#3E9E57"></i> On Track (yes)</span><span><i style="background:#D23F2C"></i> Off Track (no)</span><span><i style="background:var(--gold)"></i> Done</span><span><i style="background:#eee4cf"></i> Not marked yet</span><span>&#128293; = weeks on track in a row</span></div>';
   ev.innerHTML=html;
