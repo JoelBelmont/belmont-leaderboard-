@@ -248,6 +248,70 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
 .rv-celebrate{ position:fixed; top:13%; left:50%; transform:translateX(-50%); z-index:100001; font-weight:bold; color:var(--gold); background:rgba(255,255,255,.92); border-radius:40px; padding:14px 42px; box-shadow:0 4px 26px rgba(0,0,0,.16); animation:rvpop .5s ease; }
 .rv-celebrate.t1{ font-size:34px; } .rv-celebrate.t2{ font-size:48px; } .rv-celebrate.t3{ font-size:62px; color:#b07f33; }
 @keyframes rvpop{ 0%{transform:translateX(-50%) scale(.3);opacity:0;} 60%{transform:translateX(-50%) scale(1.15);opacity:1;} 100%{transform:translateX(-50%) scale(1);} }
+
+  /* ===================== EOS ROCKS ===================== */
+  .btn-eos{ background:#3B6E4F; color:#fff; }
+  body.eos-mode .sub, body.eos-mode #monthnav, body.eos-mode #monthnudge, body.eos-mode #wkwrap{ display:none !important; }
+  #eosView{ max-width:1180px; margin:0 auto; }
+  #eosView .eos-top{ text-align:center; margin-bottom:14px; }
+  #eosView .eos-sub{ color:var(--gold); font-weight:700; font-size:17px; }
+  #eosView .eos-qline{ display:flex; gap:12px; justify-content:center; align-items:center; margin-top:12px; flex-wrap:wrap; }
+  #eosView .eos-chip{ background:var(--teal); color:#fff; font-weight:700; border-radius:999px; padding:6px 16px; font-size:15px; }
+  #eosView .eos-wk{ max-width:620px; margin:14px auto 0; }
+  #eosView .eos-wk .lab{ font-size:13px; color:var(--mid); margin-bottom:6px; font-weight:600; }
+  #eosView .eos-wktrack{ height:11px; background:var(--line); border-radius:7px; overflow:hidden; }
+  #eosView .eos-wkfill{ height:100%; background:linear-gradient(90deg,var(--lteal),var(--teal)); border-radius:7px; }
+  #eosView .eos-pulse{ display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px 24px; margin-top:16px; }
+  #eosView .eos-ring{ width:140px; height:140px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; position:relative; }
+  #eosView .eos-ring:before{ content:""; position:absolute; inset:15px; background:#fff; border-radius:50%; }
+  #eosView .eos-ring .rv{ position:relative; text-align:center; }
+  #eosView .eos-ring .rv b{ display:block; font-size:38px; color:var(--teal); line-height:1; }
+  #eosView .eos-ring .rv span{ font-size:12px; color:var(--mid); font-weight:700; letter-spacing:.4px; }
+  #eosView .eos-tiles{ display:flex; gap:14px; flex-wrap:wrap; }
+  #eosView .eos-tile{ background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:14px 20px; min-width:120px; text-align:center; }
+  #eosView .eos-tile b{ display:block; font-size:32px; line-height:1; }
+  #eosView .eos-tile span{ font-size:12.5px; color:var(--slate); font-weight:600; margin-top:4px; display:block; }
+  #eosView .eos-tile.on b{ color:#3E9E57; } #eosView .eos-tile.done b{ color:var(--gold); } #eosView .eos-tile.off b{ color:#D23F2C; }
+  #eosView .eos-cd{ text-align:center; } #eosView .eos-cd b{ display:block; font-size:32px; color:var(--teal); line-height:1; } #eosView .eos-cd span{ font-size:12px; color:var(--mid); font-weight:700; }
+  #eosView .eos-sechd{ display:flex; align-items:center; gap:10px; justify-content:center; margin:28px 0 14px; color:var(--teal); font-size:22px; font-weight:800; }
+  #eosView .eos-stars{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  #eosView .eos-star{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 20px; text-align:center; min-width:170px; }
+  #eosView .eos-star.s1{ background:var(--goldlt); border-color:var(--gold); }
+  #eosView .eos-star .medal{ font-size:28px; } #eosView .eos-star .nm{ font-weight:800; color:var(--teal); font-size:18px; margin-top:2px; } #eosView .eos-star .rl{ font-size:12px; color:var(--mid); } #eosView .eos-star .stat{ margin-top:7px; font-size:12.5px; color:var(--slate); font-weight:600; }
+  #eosView .eos-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(500px,1fr)); gap:16px; margin-top:8px; }
+  #eosView .pcard{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px 18px; }
+  #eosView .pcard .ph{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  #eosView .pcard .pn{ font-weight:800; color:var(--teal); font-size:20px; }
+  #eosView .pcard .pr{ font-size:12.5px; color:var(--mid); }
+  #eosView .ppct{ text-align:right; } #eosView .ppct b{ font-size:28px; line-height:1; } #eosView .ppct span{ display:block; font-size:10.5px; color:var(--mid); font-weight:700; letter-spacing:.4px; }
+  #eosView .pbar{ height:11px; background:var(--line); border-radius:7px; overflow:hidden; margin:9px 0 4px; }
+  #eosView .pbarfill{ height:100%; border-radius:7px; }
+  #eosView .pcount{ font-size:12px; color:var(--slate); font-weight:600; }
+  #eosView .rock{ padding:10px 0; border-top:1px dashed var(--line); }
+  #eosView .rock .rtop{ display:flex; align-items:center; gap:9px; }
+  #eosView .eos-badge{ font-size:11.5px; font-weight:800; border-radius:7px; padding:3px 9px; white-space:nowrap; color:#fff; }
+  #eosView .b-on{ background:#3E9E57; } #eosView .b-off{ background:#D23F2C; } #eosView .b-done{ background:var(--gold); }
+  #eosView .rock .rt{ font-size:15.5px; color:var(--slate); font-weight:600; }
+  #eosView .rock .rt.doneT{ text-decoration:line-through; color:var(--mid); }
+  #eosView .flames{ font-size:12px; margin-left:auto; white-space:nowrap; color:var(--slate); }
+  #eosView .trail{ display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+  #eosView .wkn{ font-size:9.5px; color:var(--mid); width:100%; display:flex; gap:4px; margin-bottom:2px; }
+  #eosView .cell{ width:19px; height:19px; border-radius:5px; background:#eee4cf; display:inline-block; }
+  #eosView .cell.on{ background:#3E9E57; } #eosView .cell.off{ background:#D23F2C; } #eosView .cell.done{ background:var(--gold); }
+  #eosView .cell.now{ outline:2px solid var(--teal); outline-offset:1px; }
+  #eosView .eos-legend{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:24px; font-size:12.5px; color:var(--slate); }
+  #eosView .eos-legend span{ display:flex; align-items:center; gap:6px; } #eosView .eos-legend i{ width:14px; height:14px; border-radius:4px; display:inline-block; }
+  #eosView .eos-empty{ text-align:center; color:var(--mid); font-style:italic; padding:30px; }
+  /* EOS editor */
+  #eosEditView .eos-ectrls{ display:flex; gap:18px; flex-wrap:wrap; align-items:center; background:var(--hdrfill); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  #eosEditView .eos-eblock{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  #eosEditView .eos-ehead{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  #eosEditView .eos-ehead b{ color:var(--teal); font-size:17px; }
+  #eosEditView .eos-erock{ display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px dashed var(--line); flex-wrap:wrap; }
+  #eosEditView .eos-rtitle{ flex:1 1 260px; min-width:220px; }
+  #eosEditView .eos-sel{ font-weight:700; }
+  #eosEditView .eos-sel.on{ background:#e6f3ea; } #eosEditView .eos-sel.off{ background:#f8e6e2; } #eosEditView .eos-sel.done{ background:var(--goldlt); }
+  body.tv-mode #eosView{ transform-origin:top center; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -274,9 +338,12 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   <button class="btn-tv" id="tvBtn" onclick="enterTV()">&#128250; Display for TV</button>
   <button class="btn-review" id="reviewBtn" onclick="enterReview()">&#127916; Month in Review</button>
   <button class="btn-cash" id="cashBtn" style="display:none;" onclick="toggleCash()"></button>
+  <button class="btn-eos" id="eosBtn" style="display:none;" onclick="toggleEosMode()"></button>
 </div>
 <button id="tvExit" onclick="exitTV()">&#10005; Exit TV</button>
 <div id="reviewView" class="hidden"></div>
+<div id="eosView" class="hidden"></div>
+<div id="eosEditView" class="hidden"></div>
 
 <!-- ============ DISPLAY ============ -->
 <div id="displayView">
@@ -698,14 +765,19 @@ function buildMonthNav(){
   syncEditBtn();
 }
 function syncEditBtn(){
+  const eos=!!state.eosMode;
   const tb=document.getElementById('toggleBtn');
-  if(tb && !editing) tb.style.display = canEditMonth(viewMonth) ? "" : "none";
+  if(tb && !editing){ const canEd = eos ? (userScope!=="viewer") : canEditMonth(viewMonth);
+    tb.style.display = canEd ? "" : "none"; tb.textContent = eos ? "✎ Edit Rocks" : "✎ Edit scores"; tb.className="btn-edit"; }
   const lb=document.getElementById('layoutBtn');
-  if(lb) lb.style.display = (userScope==="viewer") ? "none" : "";
+  if(lb) lb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // layout is leaderboard-only
   const rb=document.getElementById('reviewBtn');
-  if(rb) rb.style.display = (userScope==="viewer") ? "none" : "";
+  if(rb) rb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // Weekly Review arrives in Stage 2
   const cb=document.getElementById('cashBtn');
-  if(cb) cb.style.display = (userScope==="owner") ? "" : "none";   // only the owner can switch modes
+  if(cb) cb.style.display = (userScope==="owner" && !eos) ? "" : "none";        // Points toggle is leaderboard-only
+  const eb=document.getElementById('eosBtn');
+  if(eb){ eb.style.display = (userScope==="owner") ? "" : "none";               // only the owner flips what the team sees
+    eb.innerHTML = eos ? '&#128202; EOS Mode: ON' : '&#128202; EOS Mode: OFF'; }
 }
 
 function distinctLabels(M){
@@ -917,6 +989,10 @@ function migrate(){
   }
   // ---- ongoing, additive only ----
   if(state.cashMode===undefined) state.cashMode=true;   // existing boards keep the dollar view
+  if(state.eosMode===undefined) state.eosMode=false;    // EOS Rocks view off by default
+  if(!state.eosQuarters) state.eosQuarters={};
+  if(!state.eosCurrent) state.eosCurrent=thisQuarterKey();
+  ensureQuarter(state.eosCurrent);
   if(!state.people) state.people=[];
   state.people.forEach(p=>{
     if(!p.id){ p.id=genId(); pendingIdSave=true; }
@@ -1002,6 +1078,10 @@ function isPerfect(p){ const types=typesFor(viewMonth,p.group); return p.scores.
 
 /* ===== DISPLAY ===== */
 function render(){
+  if(state.eosMode) return renderEos();                 // EOS Mode owns the whole display
+  document.body.classList.remove('eos-mode');
+  { const ev=document.getElementById('eosView'); if(ev) ev.classList.add('hidden'); }
+  { const h1=document.querySelector('.head h1'); if(h1) h1.textContent='Belmont Reliability Leaderboard'; }
   buildMonthNav();
   applyCashMode();
   const M=curMonth(); if(!M) return;
@@ -1138,7 +1218,7 @@ function shortName(n){ // shorten long metric labels for column headers
 let tvTimer=null;
 function fitTV(){
   if(!document.body.classList.contains('tv-mode')) return;
-  const dv=document.getElementById('displayView'); if(!dv) return;
+  const dv=document.getElementById(state.eosMode?'eosView':'displayView'); if(!dv) return;
   dv.style.transformOrigin='top center'; dv.style.transform='none';
   const head=document.querySelector('.head'); const headH=head?head.getBoundingClientRect().height:0;
   const availH=window.innerHeight-headH-24, availW=window.innerWidth-24;
@@ -1157,10 +1237,190 @@ function exitTV(){
   if(tvTimer){ clearInterval(tvTimer); tvTimer=null; }
   try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
   const dv=document.getElementById('displayView'); if(dv) dv.style.transform='none';
+  const ev=document.getElementById('eosView'); if(ev) ev.style.transform='none';
   render();
 }
 window.addEventListener('resize', ()=>{ if(document.body.classList.contains('tv-mode')) fitTV(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('tv-mode')) exitTV(); });
+
+/* ========================= EOS ROCKS ========================= */
+let eosViewQuarter=null, eosEditWeek=null;
+function thisQuarterKey(d){ d=d||new Date(); return d.getFullYear()+"-Q"+(Math.floor(d.getMonth()/3)+1); }
+function quarterLabel(k){ const m=/^(\d{4})-Q([1-4])$/.exec(k||""); return m?("Q"+m[2]+" "+m[1]):(k||""); }
+function quarterEnd(k){ const m=/^(\d{4})-Q([1-4])$/.exec(k||""); if(!m) return null; return new Date(+m[1], (+m[2])*3, 0); } // last day of the quarter
+function nextQuarterKey(k){ const m=/^(\d{4})-Q([1-4])$/.exec(k||""); if(!m) return thisQuarterKey(); let y=+m[1], q=+m[2]+1; if(q>4){q=1;y++;} return y+"-Q"+q; }
+function createQuarter(k){ return { label:quarterLabel(k), weeks:13, week:1, rocks:{} }; }
+function ensureQuarter(k){
+  if(!state.eosQuarters) state.eosQuarters={};
+  if(!state.eosQuarters[k]) state.eosQuarters[k]=createQuarter(k);
+  const q=state.eosQuarters[k];
+  if(!q.weeks) q.weeks=13; if(!q.week) q.week=1; if(!q.rocks) q.rocks={}; if(!q.label) q.label=quarterLabel(k);
+  Object.keys(q.rocks).forEach(pid=>{ (q.rocks[pid]||[]).forEach(r=>{
+    if(!r.id) r.id=genId(); if(r.title==null) r.title="";
+    if(!Array.isArray(r.status)) r.status=[];
+    while(r.status.length<q.weeks) r.status.push("");
+    if(r.status.length>q.weeks) r.status.length=q.weeks;
+  }); });
+  return q;
+}
+function curQuarter(){ return state.eosQuarters && state.eosQuarters[eosViewQuarter]; }
+function personRocks(pid){ const q=curQuarter(); return (q && q.rocks && q.rocks[pid]) || []; }
+function findRock(pid,rid){ return personRocks(pid).find(r=>r.id===rid); }
+function rockCurrent(r){ const s=r.status||[]; if(s.indexOf('done')>=0) return 'done'; for(let i=s.length-1;i>=0;i--){ if(s[i]) return s[i]; } return 'none'; }
+function rockTrailGreen(r){ const s=r.status||[]; let i=s.length-1; while(i>=0 && !s[i]) i--; let n=0; for(;i>=0;i--){ if(s[i]==='on') n++; else break; } return n; }
+function personPct(pid){ let good=0,tot=0; personRocks(pid).forEach(r=>(r.status||[]).forEach(c=>{ if(!c) return; tot++; if(c==='on'||c==='done') good++; })); return tot?Math.round(good/tot*100):0; }
+function eosBarColor(pct){ return pct>=80?'#3E9E57':pct>=50?'#D9A441':'#D23F2C'; }
+
+function toggleEosMode(){
+  if(userScope!=="owner") return;                       // only the owner sets what the team sees
+  state.eosMode=!state.eosMode;
+  if(state.eosMode){ if(!eosViewQuarter) eosViewQuarter=state.eosCurrent||thisQuarterKey(); ensureQuarter(eosViewQuarter); }
+  editing=false;
+  document.getElementById('editView').classList.add('hidden');
+  document.getElementById('eosEditView').classList.add('hidden');
+  const tb=document.getElementById('toggleBtn'); if(tb){ tb.className="btn-edit"; tb.style.display=""; }
+  persist(); syncEditBtn();
+  if(state.eosMode){ renderEos(); }
+  else {
+    document.body.classList.remove('eos-mode');
+    document.getElementById('eosView').classList.add('hidden');
+    const h1=document.querySelector('.head h1'); if(h1) h1.textContent='Belmont Reliability Leaderboard';
+    document.getElementById('displayView').classList.remove('hidden');
+    buildMonthNav(); render();
+  }
+}
+
+function eosRockBadge(r){ const c=rockCurrent(r); return c==='done'?'<span class="eos-badge b-done">&#9989; DONE</span>':c==='off'?'<span class="eos-badge b-off">OFF TRACK</span>':'<span class="eos-badge b-on">ON TRACK</span>'; }
+function eosTrailHtml(r, nowWeek, weeks){
+  let wkn='<div class="wkn">'; for(let i=1;i<=weeks;i++) wkn+='<span style="width:19px;text-align:center">'+i+'</span>'; wkn+='</div>';
+  let cells=''; const s=r.status||[];
+  for(let i=0;i<weeks;i++){ const v=s[i]; const cls=v?('cell '+v):'cell'; const now=(i+1===nowWeek)?' now':''; cells+='<span class="'+cls+now+'"></span>'; }
+  return '<div class="trail">'+wkn+cells+'</div>';
+}
+function renderEos(){
+  document.body.classList.add('eos-mode');
+  const h1=document.querySelector('.head h1'); if(h1) h1.textContent='Belmont — Quarterly Rocks';
+  document.getElementById('displayView').classList.add('hidden');
+  document.getElementById('editView').classList.add('hidden');
+  document.getElementById('eosEditView').classList.add('hidden');
+  const ev=document.getElementById('eosView'); ev.classList.remove('hidden');
+  document.getElementById('locbanner').textContent = LOCATIONS[viewLoc]||"";
+  ensureQuarter(eosViewQuarter);
+  const q=curQuarter(); if(!q){ ev.innerHTML='<div class="eos-empty">No quarter set up yet.</div>'; fitTV(); return; }
+  const nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
+  const ppl=state.people.filter(p=>p.location===viewLoc);
+  const withRocks=ppl.filter(p=>personRocks(p.id).length>0);
+
+  let html='<div class="eos-top"><div class="eos-sub">The 90-Day Priorities That Move Us Forward</div>'
+    +'<div class="eos-qline"><span class="eos-chip">'+esc(q.label||quarterLabel(eosViewQuarter))+'</span>'
+    +'<span class="eos-chip" style="background:#fff;color:var(--teal);border:1.5px solid var(--teal)">'+esc(LOCATIONS[viewLoc]||'')+'</span></div>'
+    +'<div class="eos-wk"><div class="lab">Week '+nowWeek+' of '+q.weeks+' &mdash; the quarter is still being earned</div>'
+    +'<div class="eos-wktrack"><div class="eos-wkfill" style="width:'+Math.round(nowWeek/q.weeks*100)+'%"></div></div></div></div>';
+
+  if(!withRocks.length){
+    html+='<div class="eos-empty">No Rocks set for this team yet.'+(userScope!=='viewer'?' Click &ldquo;Edit Rocks&rdquo; to add them.':'')+'</div>';
+    ev.innerHTML=html; fitTV(); return;
+  }
+  let on=0,off=0,done=0;
+  withRocks.forEach(p=>personRocks(p.id).forEach(r=>{ const c=rockCurrent(r); if(c==='done')done++; else if(c==='off')off++; else if(c==='on')on++; }));
+  const tot=on+off+done, teamPct=tot?Math.round((on+done)/tot*100):0;
+  const qe=quarterEnd(eosViewQuarter); const today=new Date(); today.setHours(0,0,0,0);
+  const daysLeft = qe? Math.max(0, Math.round((qe-today)/86400000)) : '';
+
+  html+='<div class="eos-pulse"><div class="eos-ring" style="background:conic-gradient(#3E9E57 0 '+teamPct+'%, #e9e2d2 '+teamPct+'% 100%)"><div class="rv"><b>'+teamPct+'%</b><span>ON PACE</span></div></div>'
+    +'<div class="eos-tiles"><div class="eos-tile on"><b>'+on+'</b><span>On Track</span></div>'
+    +'<div class="eos-tile done"><b>'+done+'</b><span>Done &#127881;</span></div>'
+    +'<div class="eos-tile off"><b>'+off+'</b><span>Off Track</span></div></div>'
+    +(daysLeft!==''?'<div class="eos-cd"><b>'+daysLeft+'</b><span>DAYS LEFT</span></div>':'')+'</div>';
+
+  const ranked=withRocks.map(p=>({p, done:personRocks(p.id).filter(r=>rockCurrent(r)==='done').length, pct:personPct(p.id), streak:Math.max(0,...personRocks(p.id).map(rockTrailGreen))}))
+    .sort((a,b)=> b.done-a.done || b.pct-a.pct || b.streak-a.streak).slice(0,3);
+  if(ranked.length){
+    const medals=["&#129351;","&#129352;","&#129353;"];
+    html+='<div class="eos-sechd"><span>&#11088;</span> Rock Stars This Week</div><div class="eos-stars">';
+    ranked.forEach((x,i)=>{ const bits=[]; if(x.done)bits.push(x.done+' Done'); bits.push(x.pct+'% on pace'); if(x.streak>=2)bits.push('&#128293; '+x.streak+'-wk streak');
+      html+='<div class="eos-star'+(i===0?' s1':'')+'"><div class="medal">'+medals[i]+'</div><div class="nm">'+esc(x.p.name)+'</div><div class="rl">'+esc(x.p.role)+'</div><div class="stat">'+bits.join(' &middot; ')+'</div></div>'; });
+    html+='</div>';
+  }
+  html+='<div class="eos-sechd" style="font-size:19px"><span>&#128511;</span> Everyone&rsquo;s Rocks</div><div class="eos-grid">';
+  withRocks.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+    const rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct);
+    const dn=rocks.filter(r=>rockCurrent(r)==='done').length, onc=rocks.filter(r=>rockCurrent(r)==='on').length;
+    let rk='';
+    rocks.forEach(r=>{ const c=rockCurrent(r), st=rockTrailGreen(r); const fl=(c!=='done'&&st>=2)?('<span class="flames">&#128293; '+st+' wks</span>'):'';
+      rk+='<div class="rock"><div class="rtop">'+eosRockBadge(r)+'<span class="rt'+(c==='done'?' doneT':'')+'">'+esc(r.title||'(untitled Rock)')+'</span>'+fl+'</div>'+eosTrailHtml(r,nowWeek,q.weeks)+'</div>'; });
+    const count=(dn?dn+' done · ':'')+onc+' on track · '+rocks.length+' Rock'+(rocks.length===1?'':'s');
+    html+='<div class="pcard"><div class="ph"><div><div class="pn">'+esc(p.name)+'</div><div class="pr">'+esc(p.role)+'</div></div>'
+      +'<div class="ppct"><b style="color:'+col+'">'+pct+'%</b><span>ON PACE</span></div></div>'
+      +'<div class="pbar"><div class="pbarfill" style="width:'+pct+'%;background:'+col+'"></div></div>'
+      +'<div class="pcount">'+count+'</div>'+rk+'</div>';
+  });
+  html+='</div>';
+  html+='<div class="eos-legend"><span><i style="background:#3E9E57"></i> On Track (yes)</span><span><i style="background:#D23F2C"></i> Off Track (no)</span><span><i style="background:var(--gold)"></i> Done</span><span><i style="background:#eee4cf"></i> Not marked yet</span><span>&#128293; = weeks on track in a row</span></div>';
+  ev.innerHTML=html;
+  fitTV();
+}
+
+/* ----- EOS editor (owner + location managers) ----- */
+function openEosEdit(){
+  editing=true;
+  document.getElementById('eosView').classList.add('hidden');
+  document.getElementById('eosEditView').classList.remove('hidden');
+  const b=document.getElementById('toggleBtn'); b.textContent="✓ Save & View"; b.className="btn-save"; b.style.display="";
+  const q=curQuarter(); eosEditWeek = q? Math.min(q.weeks,Math.max(1,Number(q.week)||1)) : 1;
+  buildEosEditor();
+}
+function buildEosEditor(){
+  const wrap=document.getElementById('eosEditView'); ensureQuarter(eosViewQuarter);
+  const q=curQuarter(); if(!q){ wrap.innerHTML=''; return; }
+  if(!eosEditWeek || eosEditWeek<1 || eosEditWeek>q.weeks) eosEditWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
+  const isOwner=userScope==="owner";
+  let h='<div class="eos-ectrls">'
+    +'<span><label style="font-weight:bold;color:var(--teal)">Quarter: </label><input class="txt" id="eosQLabel" style="width:140px" value="'+esc(q.label||'')+'"'+(isOwner?'':' disabled')+'></span>'
+    +'<span><label style="font-weight:bold;color:var(--teal)">Current week (team sees): </label><input class="num" id="eosCurWeek" type="number" min="1" max="'+q.weeks+'" value="'+(Number(q.week)||1)+'" style="width:64px"'+(isOwner?'':' disabled')+'></span>'
+    +'<span><label style="font-weight:bold;color:var(--teal)">Marking week: </label><select id="eosEditWeekSel" onchange="eosWeekChange(this)">';
+  for(let w=1;w<=q.weeks;w++) h+='<option value="'+w+'"'+(w===eosEditWeek?' selected':'')+'>Week '+w+'</option>';
+  h+='</select></span>';
+  if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
+  h+='</div>';
+  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Rock to On Track, Off Track, or Done for this week. Marking a Rock <b>Done</b> celebrates it &#127881;. Everything saves to the shared board.</div>';
+  const ppl=state.people.filter(p=>p.location===viewLoc).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
+  ppl.forEach(p=>{
+    const editable=canEdit(p), rocks=personRocks(p.id);
+    h+='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span></div>';
+    if(!rocks.length) h+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Rocks yet.</div>';
+    rocks.forEach(r=>{
+      const v=(r.status&&r.status[eosEditWeek-1])||"";
+      h+='<div class="eos-erock"><input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Rock title (the 90-day priority)"'+(editable?'':' disabled')+'>'
+        +'<select class="eos-sel '+(v||'')+'" data-p="'+p.id+'" data-r="'+r.id+'" data-w="'+(eosEditWeek-1)+'" onchange="eosSel(this)"'+(editable?'':' disabled')+'>'
+        +'<option value="">&mdash; not marked</option>'
+        +'<option value="on"'+(v==='on'?' selected':'')+'>On Track</option>'
+        +'<option value="off"'+(v==='off'?' selected':'')+'>Off Track</option>'
+        +'<option value="done"'+(v==='done'?' selected':'')+'>Done &#9989;</option></select>'
+        +(editable?'<button class="btn-del" onclick="removeRock(\''+p.id+'\',\''+r.id+'\')">Remove</button>':'')
+        +'</div>';
+    });
+    if(editable && rocks.length<4) h+='<button class="btn-add" style="margin-top:8px" onclick="addRock(\''+p.id+'\')">&#43; Add Rock'+(rocks.length?' ('+(4-rocks.length)+' left)':'')+'</button>';
+    h+='</div>';
+  });
+  wrap.innerHTML=h;
+}
+function collectEosEdits(){
+  const q=curQuarter(); if(!q) return;
+  if(userScope==="owner"){
+    const ql=document.getElementById('eosQLabel'); if(ql) q.label=ql.value||q.label;
+    const cw=document.getElementById('eosCurWeek'); if(cw) q.week=Math.min(q.weeks,Math.max(1,Number(cw.value)||1));
+  }
+  document.querySelectorAll('#eosEditView .eos-rtitle').forEach(inp=>{ const r=findRock(inp.dataset.p,inp.dataset.r); if(r) r.title=inp.value; });
+  document.querySelectorAll('#eosEditView .eos-sel').forEach(sel=>{ const r=findRock(sel.dataset.p,sel.dataset.r); if(r){ if(!Array.isArray(r.status)) r.status=[]; while(r.status.length<q.weeks) r.status.push(""); r.status[Number(sel.dataset.w)]=sel.value; } });
+}
+function eosSel(sel){ sel.className='eos-sel '+(sel.value||''); if(sel.value==='done'){ try{ unlockAudio(); confettiBurst(2); playCelebration(2); }catch(e){} } }
+function eosWeekChange(sel){ collectEosEdits(); eosEditWeek=Number(sel.value)||1; buildEosEditor(); }
+function addRock(pid){ collectEosEdits(); const q=curQuarter(); if(!q.rocks[pid]) q.rocks[pid]=[]; if(q.rocks[pid].length>=4) return; q.rocks[pid].push({id:genId(), title:"", status:new Array(q.weeks).fill("")}); persist(); buildEosEditor(); }
+function removeRock(pid,rid){ collectEosEdits(); const q=curQuarter(); if(q.rocks[pid]) q.rocks[pid]=q.rocks[pid].filter(r=>r.id!==rid); persist(); buildEosEditor(); }
+function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document.getElementById('eosEditView').classList.add('hidden'); const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit Rocks"; b.className="btn-edit"; renderEos(); }
+function eosNextQuarter(){ collectEosEdits(); const nk=nextQuarterKey(eosViewQuarter); ensureQuarter(nk); state.eosCurrent=nk; eosViewQuarter=nk; eosEditWeek=1; persist(); buildEosEditor(); }
 
 /* ===== MONTH IN REVIEW MODE ===== */
 let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true;
@@ -1430,6 +1690,7 @@ function reviewSave(){
 }
 function reviewToggleSummary(){ reviewShowSummary=!reviewShowSummary; renderReview(); }
 function enterReview(){
+  if(state.eosMode){ alert("Weekly Review for Rocks is coming in the next update."); return; }
   reviewOrder=buildReviewOrder();
   if(!reviewOrder.length){ alert("No one on this team to review yet."); return; }
   reviewMode=true; reviewIdx=0; reviewShowSummary=true;
@@ -1589,7 +1850,7 @@ function setViewLoc(k){ viewLoc=k; buildLocToggle(); render(); }
 
 /* ===== EDIT ===== */
 let editing=false;
-function toggleEdit(){ editing?saveAndView():openEdit(); }
+function toggleEdit(){ if(state.eosMode){ editing?saveEosAndView():openEosEdit(); return; } editing?saveAndView():openEdit(); }
 async function openEdit(){
   if(!canEditMonth(viewMonth)){ alert((curMonth()||{}).label+" is read-only for you."); return; }
   editing=true;
@@ -1848,6 +2109,7 @@ function resetWidths(){
   await refreshScope();
   await loadState();
   viewMonth = state.current;
+  eosViewQuarter = state.eosCurrent || thisQuarterKey(); ensureQuarter(eosViewQuarter);
   if(pendingIdSave && CLOUD && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; }
   resolveView();
   buildLocToggle();
@@ -1856,7 +2118,7 @@ function resetWidths(){
   render();
   if(new URLSearchParams(location.search).get('tv')==='1') enterTV();
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; eosViewQuarter=state.eosCurrent||thisQuarterKey(); ensureQuarter(eosViewQuarter); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
   }
 })();
 </script>
