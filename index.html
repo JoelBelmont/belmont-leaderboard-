@@ -312,6 +312,8 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosEditView .eos-sel{ font-weight:700; }
   #eosEditView .eos-sel.on{ background:#e6f3ea; } #eosEditView .eos-sel.off{ background:#f8e6e2; } #eosEditView .eos-sel.done{ background:var(--goldlt); }
   body.tv-mode #eosView{ transform-origin:top center; }
+  .eosrv-badge{ font-size:12px; font-weight:800; border-radius:6px; padding:2px 9px; color:#fff; margin-right:2px; }
+  .eosrv-badge.b-on{ background:#3E9E57; } .eosrv-badge.b-off{ background:#D23F2C; } .eosrv-badge.b-done{ background:var(--gold); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -772,7 +774,8 @@ function syncEditBtn(){
   const lb=document.getElementById('layoutBtn');
   if(lb) lb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // layout is leaderboard-only
   const rb=document.getElementById('reviewBtn');
-  if(rb) rb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // Weekly Review arrives in Stage 2
+  if(rb){ rb.style.display = (userScope==="viewer") ? "none" : "";               // owner + managers
+    rb.innerHTML = eos ? '&#127916; Weekly Review' : '&#127916; Month in Review'; }
   const cb=document.getElementById('cashBtn');
   if(cb) cb.style.display = (userScope==="owner" && !eos) ? "" : "none";        // Points toggle is leaderboard-only
   const eb=document.getElementById('eosBtn');
@@ -1255,6 +1258,7 @@ function ensureQuarter(k){
   if(!state.eosQuarters[k]) state.eosQuarters[k]=createQuarter(k);
   const q=state.eosQuarters[k];
   if(!q.weeks) q.weeks=13; if(!q.week) q.week=1; if(!q.rocks) q.rocks={}; if(!q.label) q.label=quarterLabel(k);
+  if(!q.review) q.review={};   // owner/manager-edited Weekly Review summaries, per person
   Object.keys(q.rocks).forEach(pid=>{ (q.rocks[pid]||[]).forEach(r=>{
     if(!r.id) r.id=genId(); if(r.title==null) r.title="";
     if(!Array.isArray(r.status)) r.status=[];
@@ -1423,7 +1427,7 @@ function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document
 function eosNextQuarter(){ collectEosEdits(); const nk=nextQuarterKey(eosViewQuarter); ensureQuarter(nk); state.eosCurrent=nk; eosViewQuarter=nk; eosEditWeek=1; persist(); buildEosEditor(); }
 
 /* ===== MONTH IN REVIEW MODE ===== */
-let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true;
+let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true, eosReview=false;
 function canReviewEdit(){ return userScope==="owner" || userScope===viewLoc; }
 // deterministic "random" so lines stay put on re-render but vary by person + month
 function hashStr(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h; }
@@ -1688,9 +1692,9 @@ function reviewSave(){
   M.review[p.id]={ wins:document.getElementById('rvWinsEdit').value, improve:document.getElementById('rvImpEdit').value };
   persist(); renderReview();
 }
-function reviewToggleSummary(){ reviewShowSummary=!reviewShowSummary; renderReview(); }
+function reviewToggleSummary(){ reviewShowSummary=!reviewShowSummary; eosReview?renderEosReview():renderReview(); }
 function enterReview(){
-  if(state.eosMode){ alert("Weekly Review for Rocks is coming in the next update."); return; }
+  if(state.eosMode){ enterEosReview(); return; }
   reviewOrder=buildReviewOrder();
   if(!reviewOrder.length){ alert("No one on this team to review yet."); return; }
   reviewMode=true; reviewIdx=0; reviewShowSummary=true;
@@ -1703,15 +1707,15 @@ function enterReview(){
   renderReview(); maybeCelebrate();
 }
 function exitReview(){
-  reviewMode=false;
+  reviewMode=false; const wasEos=eosReview; eosReview=false;
   document.body.classList.remove('review-mode');
   document.getElementById('reviewView').classList.add('hidden');
-  document.getElementById('displayView').classList.remove('hidden');
+  if(!wasEos) document.getElementById('displayView').classList.remove('hidden');   // EOS path lets render() route to #eosView
   try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
   render();
 }
-function reviewNext(){ if(reviewIdx<reviewOrder.length-1){ reviewIdx++; renderReview(); maybeCelebrate(); } }
-function reviewPrev(){ if(reviewIdx>0){ reviewIdx--; renderReview(); maybeCelebrate(); } }
+function reviewNext(){ if(reviewIdx<reviewOrder.length-1){ reviewIdx++; if(eosReview){ renderEosReview(); eosMaybeCelebrate(); } else { renderReview(); maybeCelebrate(); } } }
+function reviewPrev(){ if(reviewIdx>0){ reviewIdx--; if(eosReview){ renderEosReview(); eosMaybeCelebrate(); } else { renderReview(); maybeCelebrate(); } } }
 function maybeCelebrate(){
   const p=reviewOrder[reviewIdx]; if(!p) return;
   const tier = p.total>400 ? 3 : p.total>300 ? 2 : p.total>=300 ? 1 : 0;   // >$400 → $500 finale, >$300 → $400 celebration
@@ -1725,6 +1729,132 @@ function maybeCelebrate(){
   document.getElementById('reviewView').appendChild(b);
   setTimeout(()=>b.remove(), tier===3?5500:tier===2?3000:2200);
 }
+
+/* ===== EOS WEEKLY REVIEW (one Rock sheet at a time, coached) ===== */
+const EOS_DONE=[
+  t=>`${t} — done and dusted. Finishing a Rock is a real milestone; take the win.`,
+  t=>`${t} is complete — that's a 90-day priority put to bed. Outstanding.`,
+  t=>`${t} — crossed the finish line. That's exactly what Rocks are for.` ];
+const EOS_ON=[
+  t=>`${t} is on track — steady weekly progress is how big goals actually get done. Keep it rolling.`,
+  t=>`${t} — right on pace. Momentum like this is what carries a Rock home.`,
+  t=>`${t} is tracking nicely; stay on it and the finish takes care of itself.` ];
+const EOS_OFF=[
+  t=>`${t} slipped off track this week — let's name the one blocker and clear it together.`,
+  t=>`${t} needs some attention; what's the single next step that gets it moving again?`,
+  t=>`Let's get ${t} back on pace — one focused push this week makes the difference.` ];
+const EOS_NONE=[
+  t=>`${t} hasn't been marked yet — a quick status check gets it back on the radar.`,
+  t=>`Let's log where ${t} stands so we can keep it moving.`,
+  t=>`${t} is waiting on an update — a few minutes now keeps it from drifting.` ];
+const EOS_NOWIN=[ `Fresh week — let's get a Rock or two trending green and build from there.`,
+                  `Open field this week; let's put some progress on the board together.` ];
+const EOS_ALLGOOD=[ `Every Rock on track — nothing to fix. Phenomenal pace.`,
+                    `Clean sweep on your Rocks this week. Keep it rolling.` ];
+const EOS_VALUES={
+  responsibility:{name:'Responsibility', lines:[
+    `owning your Rocks and driving them to done is Responsibility you can set your watch by.`,
+    `everything you commit to, you follow through on. That's Responsibility.` ]},
+  initiative:{name:'Initiative', lines:[
+    `you don't wait to be asked — you move your Rocks forward every week. That's Initiative.`,
+    `spotting the next step and taking it is Initiative, pure and simple.` ]},
+  stewardship:{name:'Stewardship', lines:[
+    `steady, disciplined progress on the priorities that matter is Stewardship in action.`,
+    `you use your weeks wisely and keep the important things moving. That's Stewardship.` ]} };
+function eosAutoDraft(p){
+  const rocks=personRocks(p.id), wins=[], improve=[], used={};
+  const pickIdx=(len,h,key)=>{ const u=used[key]||(used[key]=new Set()); let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
+  rocks.forEach(r=>{
+    const c=rockCurrent(r), title=r.title||"this Rock", h=hashStr((p.id||'')+"|"+r.id+"|"+eosViewQuarter);
+    if(c==='done'){ const pool=EOS_DONE; wins.push(pool[pickIdx(pool.length,h,'done')](title)); }
+    else if(c==='on'){ const pool=EOS_ON; wins.push(pool[pickIdx(pool.length,h,'on')](title)); }
+    else if(c==='off'){ const pool=EOS_OFF; improve.push(pool[pickIdx(pool.length,h,'off')](title)); }
+    else { const pool=EOS_NONE; improve.push(pool[pickIdx(pool.length,h,'none')](title)); }
+  });
+  let value=null;
+  if(wins.length){
+    const done=rocks.filter(r=>rockCurrent(r)==='done').length, pct=personPct(p.id);
+    const pool = done>0 ? ['initiative','responsibility'] : (pct>=80?['responsibility','stewardship']:['responsibility','initiative','stewardship']);
+    const vk=pool[hashStr((p.id||'')+"|val|"+eosViewQuarter)%pool.length], def=EOS_VALUES[vk];
+    value={ name:def.name, line:def.lines[hashStr((p.id||'')+"|vl|"+eosViewQuarter)%def.lines.length] };
+  }
+  const hp=hashStr((p.id||'')+"|"+eosViewQuarter);
+  return { wins: wins.length?wins.join("\n"):EOS_NOWIN[hp%EOS_NOWIN.length],
+           improve: improve.length?improve.join("\n"):EOS_ALLGOOD[hp%EOS_ALLGOOD.length], value };
+}
+function eosReviewText(p){ const q=curQuarter(); const stored=(q&&q.review&&q.review[p.id])||null, draft=eosAutoDraft(p);
+  return { wins:(stored&&stored.wins!=null)?stored.wins:draft.wins, improve:(stored&&stored.improve!=null)?stored.improve:draft.improve, value:draft.value }; }
+function enterEosReview(){
+  reviewOrder = state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0)
+    .map(p=>Object.assign({},p)).sort((a,b)=> personPct(a.id)-personPct(b.id) || a.name.localeCompare(b.name));  // weakest → strongest
+  if(!reviewOrder.length){ alert("No Rocks to review for this team yet."); return; }
+  reviewMode=true; eosReview=true; reviewIdx=0; reviewShowSummary=true;
+  document.getElementById('eosView').classList.add('hidden');
+  document.getElementById('eosEditView').classList.add('hidden');
+  document.getElementById('reviewView').classList.remove('hidden');
+  document.body.classList.add('review-mode');
+  unlockAudio();
+  try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
+  renderEosReview(); eosMaybeCelebrate();
+}
+function renderEosReview(){
+  const q=curQuarter(); if(!q) return;
+  const p=reviewOrder[reviewIdx]; if(!p) return;
+  const rv=eosReviewText(p), rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct);
+  const titles=rocks.map(r=>r.title).filter(Boolean);
+  const nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
+  let chips='';
+  rocks.forEach(r=>{ const c=rockCurrent(r); const cls=c==='done'?'b-done':c==='off'?'b-off':'b-on';
+    chips+=`<div class="rv-metric"><span class="eosrv-badge ${cls}">${c==='done'?'DONE':c==='off'?'OFF':'ON'}</span><span>${esc(r.title||'(untitled Rock)')}</span></div>`; });
+  const el=document.getElementById('reviewView');
+  el.innerHTML = `<button id="rvExit" onclick="exitReview()">&#10005; Exit review</button>
+    <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(q.label||'')} &middot; Week ${nowWeek}</div>
+    <div class="rv-card">
+      <div class="rv-name">${esc(p.name)}</div>
+      <div class="rv-role">${esc(p.role)}</div>
+      <div class="rv-total"><span style="color:${col}">${pct}%</span> <span class="rv-of">on pace</span></div>
+      <div class="rv-bar"><div class="rv-barfill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="rv-metrics">${chips}</div>
+      <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
+        <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${styleSummary(rv.improve,titles)}</div></div>
+        <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${styleSummary(rv.wins,titles)}</div></div>
+      </div>
+      ${(rv.value && reviewShowSummary)?`<div class="rv-value">&#128142; <b>${esc(rv.value.name)} in action</b> &mdash; ${esc(rv.value.line)}</div>`:''}
+      ${(reviewShowSummary&&canReviewEdit())?`<button class="rv-editbtn" onclick="eosReviewEdit()">&#9998; Edit summary</button>`:''}
+    </div>
+    <div class="rv-nav">
+      <button onclick="reviewPrev()" ${reviewIdx===0?'disabled':''}>&lsaquo; Previous</button>
+      <button class="rv-toggle" onclick="reviewToggleSummary()">${reviewShowSummary?'Hide summary':'Show summary'}</button>
+      <button onclick="reviewNext()" ${reviewIdx>=reviewOrder.length-1?'disabled':''}>Next &rsaquo;</button>
+    </div>`;
+  fitReviewMetrics();
+}
+function eosReviewEdit(){
+  const p=reviewOrder[reviewIdx], rv=eosReviewText(p);
+  const sum=document.querySelector('#reviewView .rv-summary'); if(!sum) return;
+  sum.innerHTML=`<div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><textarea id="rvImpEdit" class="rv-edit">${esc(rv.improve)}</textarea></div>
+    <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><textarea id="rvWinsEdit" class="rv-edit">${esc(rv.wins)}</textarea></div>`;
+  const btn=document.querySelector('#reviewView .rv-card > .rv-editbtn');
+  if(btn) btn.outerHTML=`<button class="rv-editbtn" onclick="eosReviewSave()">&#10003; Save</button> <button class="rv-editbtn" style="background:#fff;color:var(--teal);border:1.5px solid var(--teal);" onclick="renderEosReview()">Cancel</button>`;
+}
+function eosReviewSave(){
+  const p=reviewOrder[reviewIdx], q=curQuarter(); if(!q.review) q.review={};
+  q.review[p.id]={ wins:document.getElementById('rvWinsEdit').value, improve:document.getElementById('rvImpEdit').value };
+  persist(); renderEosReview();
+}
+function eosMaybeCelebrate(){
+  const p=reviewOrder[reviewIdx]; if(!p) return;
+  const pct=personPct(p.id);
+  const tier = pct>=100?3 : pct>=80?2 : pct>=60?1 : 0;
+  if(!tier) return;
+  confettiBurst(tier); playCelebration(tier);
+  if(tier===3) setTimeout(()=>confettiBurst(3), 2800);
+  const b=document.createElement('div'); b.className='rv-celebrate t'+tier;
+  b.innerHTML = pct>=100 ? '&#127881; 100% ON PACE! &#127881;' : ('&#127881; '+pct+'% on pace! &#127881;');
+  document.getElementById('reviewView').appendChild(b);
+  setTimeout(()=>b.remove(), tier===3?5500:tier===2?3000:2200);
+}
+
 document.addEventListener('keydown', e=>{
   if(!reviewMode) return;
   if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); reviewNext(); }
