@@ -320,7 +320,12 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   body.tv-mode #eosView{ transform-origin:top center; max-width:none; }
   body.tv-mode #eosView .eos-grid{ grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:16px; align-items:start; }
   body.tv-mode #eosView .eos-sechd{ margin:14px 0 8px; font-size:20px; }
-  body.tv-mode #eosView .eos-top{ margin-bottom:6px; }
+  body.tv-mode #eosView .eos-top{ margin-bottom:4px; }
+  body.tv-mode #eosView .eos-sub{ display:none; }   /* redundant on the TV header */
+  /* pulse + Rock Stars share ONE row to condense the top ~40% and free height for bigger cards */
+  body.tv-mode #eosView .eos-band{ display:flex; flex-direction:row; gap:26px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  body.tv-mode #eosView .eos-band .eos-pulse{ margin:0; }
+  body.tv-mode #eosView .eos-rswrap .eos-sechd{ margin:0 0 6px; }
   /* shrink the top band + card spacing so the whole board scales up to fill the screen */
   body.tv-mode #eosView .eos-pulse{ margin-top:10px; padding:12px 18px; gap:16px; }
   body.tv-mode #eosView .eos-ring{ width:108px; height:108px; }
@@ -1353,7 +1358,7 @@ function renderEos(){
   const qe=quarterEnd(eosViewQuarter); const today=new Date(); today.setHours(0,0,0,0);
   const daysLeft = qe? Math.max(0, Math.round((qe-today)/86400000)) : '';
 
-  html+='<div class="eos-pulse"><div class="eos-ring" style="background:conic-gradient(#3E9E57 0 '+teamPct+'%, #e9e2d2 '+teamPct+'% 100%)"><div class="rv"><b>'+teamPct+'%</b><span>ON PACE</span></div></div>'
+  html+='<div class="eos-band"><div class="eos-pulse"><div class="eos-ring" style="background:conic-gradient(#3E9E57 0 '+teamPct+'%, #e9e2d2 '+teamPct+'% 100%)"><div class="rv"><b>'+teamPct+'%</b><span>ON PACE</span></div></div>'
     +'<div class="eos-tiles"><div class="eos-tile on"><b>'+on+'</b><span>On Track</span></div>'
     +'<div class="eos-tile done"><b>'+done+'</b><span>Done &#127881;</span></div>'
     +'<div class="eos-tile off"><b>'+off+'</b><span>Off Track</span></div></div>'
@@ -1363,11 +1368,12 @@ function renderEos(){
     .sort((a,b)=> b.pct-a.pct || b.done-a.done || b.streak-a.streak).slice(0,3);  // on-pace % leads, so finishing one easy Rock can't mask dropping bigger ones
   if(ranked.length){
     const medals=["&#129351;","&#129352;","&#129353;"];
-    html+='<div class="eos-sechd"><span>&#11088;</span> Rock Stars This Week</div><div class="eos-stars">';
+    html+='<div class="eos-rswrap"><div class="eos-sechd"><span>&#11088;</span> Rock Stars This Week</div><div class="eos-stars">';
     ranked.forEach((x,i)=>{ const bits=[]; if(x.done)bits.push(x.done+' Done'); bits.push(x.pct+'% on pace'); if(x.streak>=2)bits.push('&#128293; '+x.streak+'-wk streak');
       html+='<div class="eos-star'+(i===0?' s1':'')+'"><div class="medal">'+medals[i]+'</div><div class="nm">'+esc(x.p.name)+'</div><div class="rl">'+esc(x.p.role)+'</div><div class="stat">'+bits.join(' &middot; ')+'</div></div>'; });
-    html+='</div>';
+    html+='</div></div>';
   }
+  html+='</div>';   // close .eos-band — on TV the pulse + Rock Stars share one row
   html+='<div class="eos-sechd" style="font-size:19px"><span>&#128511;</span> Everyone&rsquo;s Goals</div><div class="eos-grid">';
   withRocks.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
     const rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct);
