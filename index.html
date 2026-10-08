@@ -314,6 +314,9 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosEditView .eos-rtitle{ flex:1 1 260px; min-width:220px; }
   #eosEditView .eos-sel{ font-weight:700; }
   #eosEditView .eos-sel.on{ background:#e6f3ea; } #eosEditView .eos-sel.off{ background:#f8e6e2; } #eosEditView .eos-sel.done{ background:var(--goldlt); }
+  #eosEditView .eos-eghead{ display:flex; align-items:center; gap:9px; font-weight:800; color:var(--teal); font-size:16px; margin:18px 2px 8px; padding-bottom:5px; border-bottom:2px solid var(--line); }
+  #eosEditView .eos-eghead:first-of-type{ margin-top:4px; }
+  #eosEditView .eos-eghead .gdot{ width:12px; height:12px; border-radius:3px; display:inline-block; flex:0 0 auto; }
   #eosEditView .eos-drag{ cursor:grab; color:var(--mid); font-size:17px; line-height:1; padding:0 4px; user-select:none; flex:0 0 auto; }
   #eosEditView .eos-drag:active{ cursor:grabbing; }
   #eosEditView .eos-drag-off{ color:var(--line); cursor:default; }
@@ -1433,15 +1436,15 @@ function buildEosEditor(){
   if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
   h+='</div>';
   h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Drag the <b>&#9776;</b> handle to reorder someone&rsquo;s Goals. Everything saves to the shared board.</div>';
-  const ppl=state.people.filter(p=>p.location===viewLoc).sort((a,b)=>a.name.localeCompare(b.name));
+  const ppl=state.people.filter(p=>p.location===viewLoc);
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
-  ppl.forEach(p=>{
+  const eblock=(p)=>{
     const editable=canEdit(p), rocks=personRocks(p.id);
-    h+='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span></div>';
-    if(!rocks.length) h+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Goals yet.</div>';
+    let b='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span></div>';
+    if(!rocks.length) b+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Goals yet.</div>';
     rocks.forEach(r=>{
       const v=(r.status&&r.status[eosEditWeek-1])||"";
-      h+='<div class="eos-erock" ondragover="eosDragOver(event,\''+p.id+'\')" ondragleave="eosDragLeave(event)" ondrop="eosDrop(event,\''+p.id+'\',\''+r.id+'\')">'
+      b+='<div class="eos-erock" ondragover="eosDragOver(event,\''+p.id+'\')" ondragleave="eosDragLeave(event)" ondrop="eosDrop(event,\''+p.id+'\',\''+r.id+'\')">'
         +((editable && rocks.length>1)?'<span class="eos-drag" draggable="true" title="Drag to reorder" ondragstart="eosDragStart(event,\''+p.id+'\',\''+r.id+'\')" ondragend="eosDragEnd(event)">&#9776;</span>':(rocks.length>1?'<span class="eos-drag eos-drag-off">&#9776;</span>':''))
         +'<input class="txt eos-rtitle" data-p="'+p.id+'" data-r="'+r.id+'" value="'+esc(r.title||'')+'" placeholder="Goal title (the 90-day priority)"'+(editable?'':' disabled')+'>'
         +'<select class="eos-sel '+(v||'')+'" data-p="'+p.id+'" data-r="'+r.id+'" data-w="'+(eosEditWeek-1)+'" onchange="eosSel(this)"'+(editable?'':' disabled')+'>'
@@ -1452,9 +1455,20 @@ function buildEosEditor(){
         +(editable?'<button class="btn-del" onclick="removeRock(\''+p.id+'\',\''+r.id+'\')">Remove</button>':'')
         +'</div>';
     });
-    if(editable && rocks.length<4) h+='<button class="btn-add" style="margin-top:8px" onclick="addRock(\''+p.id+'\')">&#43; Add Goal'+(rocks.length?' ('+(4-rocks.length)+' left)':'')+'</button>';
-    h+='</div>';
+    if(editable && rocks.length<4) b+='<button class="btn-add" style="margin-top:8px" onclick="addRock(\''+p.id+'\')">&#43; Add Goal'+(rocks.length?' ('+(4-rocks.length)+' left)':'')+'</button>';
+    b+='</div>';
+    return b;
+  };
+  const shownE={};   // group by role (GROUPS order), alphabetical within — matches the display page
+  GROUPS.forEach(gk=>{
+    const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!members.length) return;
+    const set=ROLE_SETS[gk], gcol=ROLE_COLORS[gk]||'var(--teal)';
+    h+='<div class="eos-eghead" style="border-color:'+gcol+'"><span class="gdot" style="background:'+gcol+'"></span>'+esc((set&&set.label)||gk)+'</div>';
+    members.forEach(p=>{ shownE[p.id]=1; h+=eblock(p); });
   });
+  const leftoverE=ppl.filter(p=>!shownE[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(leftoverE.length){ h+='<div class="eos-eghead"><span class="gdot" style="background:var(--mid)"></span>Other</div>'; leftoverE.forEach(p=>h+=eblock(p)); }
   wrap.innerHTML=h;
 }
 function collectEosEdits(){
