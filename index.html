@@ -317,6 +317,7 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosEditView .eos-eghead{ display:flex; align-items:center; gap:9px; font-weight:800; color:var(--teal); font-size:16px; margin:18px 2px 8px; padding-bottom:5px; border-bottom:2px solid var(--line); }
   #eosEditView .eos-eghead:first-of-type{ margin-top:4px; }
   #eosEditView .eos-eghead .gdot{ width:12px; height:12px; border-radius:3px; display:inline-block; flex:0 0 auto; }
+  #eosEditView .eos-rmperson{ font-size:11px; padding:3px 9px; margin-left:12px; flex:0 0 auto; }
   #eosEditView .eos-drag{ cursor:grab; color:var(--mid); font-size:17px; line-height:1; padding:0 4px; user-select:none; flex:0 0 auto; }
   #eosEditView .eos-drag:active{ cursor:grabbing; }
   #eosEditView .eos-drag-off{ color:var(--line); cursor:default; }
@@ -1355,7 +1356,7 @@ function probePhotos(){
 }
 function buildSlides(){
   const havePhotos=slidePhotos.length>0;
-  const ppl=state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0);
+  const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && personRocks(p.id).length>0);
   const out=[{type:'pulse'}], shown={};
   GROUPS.forEach(gk=>{
     const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
@@ -1369,7 +1370,7 @@ function buildSlides(){
 }
 function slidePulseHtml(){
   const q=curQuarter(); if(!q) return '';
-  const ppl=state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0);
+  const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && personRocks(p.id).length>0);
   let on=0,off=0,done=0; ppl.forEach(p=>personRocks(p.id).forEach(r=>{const c=rockCurrent(r); if(c==='done')done++; else if(c==='off')off++; else if(c==='on')on++;}));
   const tot=on+off+done, teamPct=tot?Math.round((on+done)/tot*100):0;
   const qe=quarterEnd(eosViewQuarter); const t=new Date(); t.setHours(0,0,0,0); const daysLeft=qe?Math.max(0,Math.round((qe-t)/86400000)):'';
@@ -1459,6 +1460,7 @@ function ensureQuarter(k){
 }
 function curQuarter(){ return state.eosQuarters && state.eosQuarters[eosViewQuarter]; }
 function personRocks(pid){ const q=curQuarter(); return (q && q.rocks && q.rocks[pid]) || []; }
+function eosActive(pid){ const m=state.months&&state.months[state.current]; return !!(m && m.scores && m.scores[pid]); }   // active = on the current live leaderboard board; a removal there drops them from EOS too
 function findRock(pid,rid){ return personRocks(pid).find(r=>r.id===rid); }
 function rockCurrent(r){ const s=r.status||[]; if(s.indexOf('done')>=0) return 'done'; for(let i=s.length-1;i>=0;i--){ if(s[i]) return s[i]; } return 'none'; }
 function rockTrailGreen(r){ const s=r.status||[]; let i=s.length-1; while(i>=0 && !s[i]) i--; let n=0; for(;i>=0;i--){ if(s[i]==='on') n++; else break; } return n; }
@@ -1502,7 +1504,7 @@ function renderEos(){
   ensureQuarter(eosViewQuarter);
   const q=curQuarter(); if(!q){ ev.innerHTML='<div class="eos-empty">No quarter set up yet.</div>'; fitTV(); return; }
   const nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
-  const ppl=state.people.filter(p=>p.location===viewLoc);
+  const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id));
   const withRocks=ppl.filter(p=>personRocks(p.id).length>0);
 
   let html='<div class="eos-top"><div class="eos-sub">The Goals We Move Forward, Week by Week</div>'
@@ -1591,11 +1593,11 @@ function buildEosEditor(){
   if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
   h+='</div>';
   h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Drag the <b>&#9776;</b> handle to reorder someone&rsquo;s Goals. Everything saves to the shared board.</div>';
-  const ppl=state.people.filter(p=>p.location===viewLoc);
+  const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id));
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
   const eblock=(p)=>{
     const editable=canEdit(p), rocks=personRocks(p.id);
-    let b='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span></div>';
+    let b='<div class="eos-eblock"><div class="eos-ehead"><b>'+esc(p.name)+'</b> <span style="color:var(--mid)">'+esc(p.role)+'</span> <span style="margin-left:auto;font-size:12.5px;color:var(--slate);font-weight:700">On Pace: '+personPct(p.id)+'%</span>'+(editable?' <button class="btn-del eos-rmperson" title="Remove this person from the board" onclick="eosRemovePerson(\''+p.id+'\')">Remove person</button>':'')+'</div>';
     if(!rocks.length) b+='<div style="font-size:13px;color:var(--mid);font-style:italic;padding:4px 0">No Goals yet.</div>';
     rocks.forEach(r=>{
       const v=(r.status&&r.status[eosEditWeek-1])||"";
@@ -1667,6 +1669,15 @@ function eosDrop(e,pid,targetRid){
 }
 function saveEosAndView(){ collectEosEdits(); persist(); editing=false; document.getElementById('eosEditView').classList.add('hidden'); const b=document.getElementById('toggleBtn'); b.textContent="✎ Edit Goals"; b.className="btn-edit"; renderEos(); }
 function eosNextQuarter(){ collectEosEdits(); const nk=nextQuarterKey(eosViewQuarter); ensureQuarter(nk); state.eosCurrent=nk; eosViewQuarter=nk; eosEditWeek=1; persist(); buildEosEditor(); }
+function eosRemovePerson(pid){
+  collectEosEdits();
+  const p=state.people.find(x=>x.id===pid); if(!p || !canEdit(p)) return;
+  if(!confirm("Remove "+(p.name||"this person")+" from the board?\n\nThis takes them off the current Goals board and the leaderboard going forward. Past months keep their record.")) return;
+  monthKeys().filter(k=>k>=state.current).forEach(k=>{ if(state.months[k]&&state.months[k].scores) delete state.months[k].scores[pid]; });   // mirror the leaderboard
+  if(!monthKeys().some(k=>state.months[k].scores&&state.months[k].scores[pid])) state.people=state.people.filter(x=>x.id!==pid);
+  Object.keys(state.eosQuarters||{}).forEach(qk=>{ if(state.eosQuarters[qk].rocks) delete state.eosQuarters[qk].rocks[pid]; });   // drop their Goals everywhere
+  persist(); buildEosEditor();
+}
 
 /* ===== MONTH IN REVIEW MODE ===== */
 let reviewMode=false, reviewOrder=[], reviewIdx=0, reviewShowSummary=true, eosReview=false;
@@ -2027,7 +2038,7 @@ function eosAutoDraft(p){
 function eosReviewText(p){ const q=curQuarter(); const stored=(q&&q.review&&q.review[p.id])||null, draft=eosAutoDraft(p);
   return { wins:(stored&&stored.wins!=null)?stored.wins:draft.wins, improve:(stored&&stored.improve!=null)?stored.improve:draft.improve, value:draft.value }; }
 function enterEosReview(){
-  reviewOrder = state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0)
+  reviewOrder = state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && personRocks(p.id).length>0)
     .map(p=>Object.assign({},p)).sort((a,b)=> personPct(a.id)-personPct(b.id) || a.name.localeCompare(b.name));  // weakest → strongest
   if(!reviewOrder.length){ alert("No Goals to review for this team yet."); return; }
   reviewMode=true; eosReview=true; reviewIdx=0; reviewShowSummary=true;
