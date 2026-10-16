@@ -1354,15 +1354,17 @@ function probePhotos(cb){
     })(0);
   })(1);
 }
+// photo breaks fall BETWEEN these blocks (not between every role), to keep pacing even:
+// Techs | Senior Techs | PMs | (BDR/PM + BDR + Office together)
+const SLIDE_BLOCKS = [["tech"], ["senior_tech"], ["pm_senior"], ["bdr_sales","bdr","office"]];
 function buildSlides(){
   const havePhotos=slidePhotos.length>0;
   const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && personRocks(p.id).length>0);
   const out=[{type:'pulse'}], shown={};
-  GROUPS.forEach(gk=>{
-    const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
-    if(!members.length) return;
-    members.forEach(p=>{ shown[p.id]=1; out.push({type:'person', id:p.id}); });
-    if(havePhotos) out.push({type:'photo'});            // a photo break after each role group
+  SLIDE_BLOCKS.forEach(block=>{
+    let any=false;
+    block.forEach(gk=>{ ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{ shown[p.id]=1; out.push({type:'person', id:p.id}); any=true; }); });
+    if(any && havePhotos) out.push({type:'photo'});       // one photo after the whole block
   });
   const leftover=ppl.filter(p=>!shown[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
   if(leftover.length){ leftover.forEach(p=>out.push({type:'person', id:p.id})); if(havePhotos) out.push({type:'photo'}); }
