@@ -1621,7 +1621,7 @@ function buildEosEditor(){
   h+='<div class="eos-modetoggle"><span style="font-weight:bold;color:var(--teal)">Update:</span>'
     +'<button class="eos-mtbtn'+(eosEditMode==='individual'?'':' on')+'" onclick="eosEditSetMode(\'team\')">&#128101; Whole team (list)</button>'
     +'<button class="eos-mtbtn'+(eosEditMode==='individual'?' on':'')+'" onclick="eosEditSetMode(\'individual\')">&#128100; One person at a time</button></div>';
-  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Drag the <b>&#9776;</b> handle to reorder someone&rsquo;s Goals. Everything saves to the shared board.</div>';
+  h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;.</div>';
   const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id));
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
   const eblock=(p)=>{
