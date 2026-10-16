@@ -224,6 +224,10 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   background-image:linear-gradient(to right,#D23F2C 0%,#D23F2C 14%,#F08A2C 38%,#8CC85C 60%,#3E9E57 100%); }
 .rv-metrics{ display:flex; flex-wrap:nowrap; justify-content:center; gap:14px 24px; margin-bottom:26px; transform-origin:center; }
 .rv-metric{ display:flex; align-items:center; gap:9px; font-size:19px; color:var(--slate); white-space:nowrap; flex:0 0 auto; }
+/* EOS Weekly Review: wider box, and let the goals wrap inside it at full size instead of shrinking to fit */
+.rv-card.rv-card-eos{ max-width:1700px; }
+.rv-metrics.rv-m-eos{ flex-wrap:wrap; transform:none !important; }
+.rv-metrics.rv-m-eos .rv-metric{ white-space:normal; max-width:100%; }
 .rv-metric .dot{ width:22px; height:22px; }
 .rv-summary{ display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
 .rv-sum{ flex:1 1 320px; min-width:280px; max-width:460px; border-radius:14px; padding:16px 22px; text-align:left; }
@@ -1931,7 +1935,7 @@ function paintReviewBar(){
   fill.style.backgroundSize = CASH() ? '' : (bar.clientWidth + 'px 100%');   // score mode anchors the scale gradient to the full track
 }
 function fitReviewMetrics(){
-  const m=document.querySelector('#reviewView .rv-metrics'); if(!m) return;
+  const m=document.querySelector('#reviewView .rv-metrics'); if(!m || m.classList.contains('rv-m-eos')) return;   // EOS goals wrap instead of shrinking
   m.style.transform='none';
   const avail=m.clientWidth, w=m.scrollWidth;
   if(w>avail+1) m.style.transform='scale('+(avail/w)+')';   // keep all metrics on one line, shrink only if needed
@@ -2068,12 +2072,12 @@ function renderEosReview(){
   const el=document.getElementById('reviewView');
   el.innerHTML = `<button id="rvExit" onclick="exitReview()">&#10005; Exit review</button>
     <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(q.label||'')} &middot; Week ${nowWeek}</div>
-    <div class="rv-card">
+    <div class="rv-card rv-card-eos">
       <div class="rv-name">${esc(p.name)}</div>
       <div class="rv-role">${esc(p.role)}</div>
       <div class="rv-total"><span style="color:${col}">${pct}%</span> <span class="rv-of">on pace</span></div>
       <div class="rv-bar"><div class="rv-barfill" style="width:${pct}%;background:${col}"></div></div>
-      <div class="rv-metrics">${chips}</div>
+      <div class="rv-metrics rv-m-eos">${chips}</div>
       <div class="rv-summary" ${reviewShowSummary?'':'style="display:none;"'}>
         <div class="rv-sum rv-imp"><div class="rv-sumhd">&#128296; Needs to improve</div><div class="rv-sumtxt">${styleSummary(rv.improve,titles)}</div></div>
         <div class="rv-sum rv-wins"><div class="rv-sumhd">&#9989; Wins</div><div class="rv-sumtxt">${styleSummary(rv.wins,titles)}</div></div>
