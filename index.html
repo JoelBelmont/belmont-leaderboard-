@@ -321,6 +321,15 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #eosEditView .eos-eghead{ display:flex; align-items:center; gap:9px; font-weight:800; color:var(--teal); font-size:16px; margin:18px 2px 8px; padding-bottom:5px; border-bottom:2px solid var(--line); }
   #eosEditView .eos-eghead:first-of-type{ margin-top:4px; }
   #eosEditView .eos-eghead .gdot{ width:12px; height:12px; border-radius:3px; display:inline-block; flex:0 0 auto; }
+  #eosEditView .eos-modetoggle{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 2px 16px; }
+  #eosEditView .eos-mtbtn{ background:var(--hdrfill); color:var(--teal); border:1.5px solid var(--line); border-radius:999px; padding:7px 16px; font-size:14px; font-weight:700; cursor:pointer; }
+  #eosEditView .eos-mtbtn:hover{ border-color:var(--teal); }
+  #eosEditView .eos-mtbtn.on{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  #eosEditView .eos-inav{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--hdrfill); border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin:0 2px 16px; }
+  #eosEditView .eos-inav button{ background:var(--teal); color:#fff; border:none; border-radius:999px; padding:9px 20px; font-size:15px; font-weight:700; cursor:pointer; }
+  #eosEditView .eos-inav button:disabled{ opacity:.35; cursor:default; }
+  #eosEditView .eos-iprog{ display:flex; align-items:center; gap:9px; font-weight:800; color:var(--teal); font-size:16px; text-align:center; }
+  #eosEditView .eos-iprog .gdot{ width:13px; height:13px; border-radius:3px; display:inline-block; flex:0 0 auto; }
   #eosEditView .eos-rmperson{ font-size:11px; padding:3px 9px; margin-left:12px; flex:0 0 auto; }
   #eosEditView .eos-drag{ cursor:grab; color:var(--mid); font-size:17px; line-height:1; padding:0 4px; user-select:none; flex:0 0 auto; }
   #eosEditView .eos-drag:active{ cursor:grabbing; }
@@ -1448,7 +1457,14 @@ document.addEventListener('fullscreenchange', ()=>{ if(slideMode) setTimeout(()=
 document.addEventListener('keydown', e=>{ if(!slideMode) return; if(e.key==='Escape'){ exitSlideshow(); } else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); nextSlide(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); prevSlide(); } });
 
 /* ========================= EOS ROCKS ========================= */
-let eosViewQuarter=null, eosEditWeek=null;
+let eosViewQuarter=null, eosEditWeek=null, eosEditMode='team', eosEditPersonIdx=0;
+/* editable people for this location, in the display order (role groups, alphabetical within) */
+function eosEditOrder(){
+  const shown={}, out=[];
+  GROUPS.forEach(gk=>{ state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && p.group===gk).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{ shown[p.id]=1; out.push(p); }); });
+  state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && !shown[p.id]).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>out.push(p));
+  return out;
+}
 function thisQuarterKey(d){ d=d||new Date(); return d.getFullYear()+"-Q"+(Math.floor(d.getMonth()/3)+1); }
 function quarterLabel(k){ const m=/^(\d{4})-Q([1-4])$/.exec(k||""); return m?("Q"+m[2]+" "+m[1]):(k||""); }
 function quarterEnd(k){ const m=/^(\d{4})-Q([1-4])$/.exec(k||""); if(!m) return null; return new Date(+m[1], (+m[2])*3, 0); } // last day of the quarter
@@ -1602,6 +1618,9 @@ function buildEosEditor(){
   h+='</select></span>';
   if(isOwner) h+='<button class="btn-add" onclick="eosNextQuarter()">&#43; Start next quarter</button>';
   h+='</div>';
+  h+='<div class="eos-modetoggle"><span style="font-weight:bold;color:var(--teal)">Update:</span>'
+    +'<button class="eos-mtbtn'+(eosEditMode==='individual'?'':' on')+'" onclick="eosEditSetMode(\'team\')">&#128101; Whole team (list)</button>'
+    +'<button class="eos-mtbtn'+(eosEditMode==='individual'?' on':'')+'" onclick="eosEditSetMode(\'individual\')">&#128100; One person at a time</button></div>';
   h+='<div class="editctx">You&rsquo;re marking <b>Week '+eosEditWeek+'</b> &mdash; set each Goal to On Track, Off Track, or Done for this week. Marking a Goal <b>Done</b> celebrates it &#127881;. Drag the <b>&#9776;</b> handle to reorder someone&rsquo;s Goals. Everything saves to the shared board.</div>';
   const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id));
   if(!ppl.length) h+='<div class="eos-empty">No people in this team yet &mdash; add them on the leaderboard first.</div>';
@@ -1626,18 +1645,32 @@ function buildEosEditor(){
     b+='</div>';
     return b;
   };
-  const shownE={};   // group by role (GROUPS order), alphabetical within — matches the display page
-  GROUPS.forEach(gk=>{
-    const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
-    if(!members.length) return;
-    const set=ROLE_SETS[gk], gcol=ROLE_COLORS[gk]||'var(--teal)';
-    h+='<div class="eos-eghead" style="border-color:'+gcol+'"><span class="gdot" style="background:'+gcol+'"></span>'+esc((set&&set.label)||gk)+'</div>';
-    members.forEach(p=>{ shownE[p.id]=1; h+=eblock(p); });
-  });
-  const leftoverE=ppl.filter(p=>!shownE[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
-  if(leftoverE.length){ h+='<div class="eos-eghead"><span class="gdot" style="background:var(--mid)"></span>Other</div>'; leftoverE.forEach(p=>h+=eblock(p)); }
+  if(eosEditMode==='individual' && ppl.length){
+    const order=eosEditOrder();
+    if(eosEditPersonIdx>=order.length) eosEditPersonIdx=order.length-1;
+    if(eosEditPersonIdx<0) eosEditPersonIdx=0;
+    const p=order[eosEditPersonIdx], set=ROLE_SETS[p.group], gcol=ROLE_COLORS[p.group]||'var(--teal)';
+    h+='<div class="eos-inav"><button onclick="eosEditPrevPerson()"'+(eosEditPersonIdx===0?' disabled':'')+'>&lsaquo; Previous</button>'
+      +'<span class="eos-iprog"><span class="gdot" style="background:'+gcol+'"></span> Person '+(eosEditPersonIdx+1)+' of '+order.length+' &middot; '+esc((set&&set.label)||p.group)+'</span>'
+      +'<button onclick="eosEditNextPerson()"'+(eosEditPersonIdx>=order.length-1?' disabled':'')+'>Next &rsaquo;</button></div>';
+    h+=eblock(p);
+  } else {
+    const shownE={};   // Team view: group by role (GROUPS order), alphabetical within — matches the display page
+    GROUPS.forEach(gk=>{
+      const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
+      if(!members.length) return;
+      const set=ROLE_SETS[gk], gcol=ROLE_COLORS[gk]||'var(--teal)';
+      h+='<div class="eos-eghead" style="border-color:'+gcol+'"><span class="gdot" style="background:'+gcol+'"></span>'+esc((set&&set.label)||gk)+'</div>';
+      members.forEach(p=>{ shownE[p.id]=1; h+=eblock(p); });
+    });
+    const leftoverE=ppl.filter(p=>!shownE[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
+    if(leftoverE.length){ h+='<div class="eos-eghead"><span class="gdot" style="background:var(--mid)"></span>Other</div>'; leftoverE.forEach(p=>h+=eblock(p)); }
+  }
   wrap.innerHTML=h;
 }
+function eosEditSetMode(mode){ collectEosEdits(); eosEditMode=(mode==='individual')?'individual':'team'; if(eosEditMode==='individual'){ const order=eosEditOrder(); if(eosEditPersonIdx>=order.length) eosEditPersonIdx=0; } buildEosEditor(); }
+function eosEditPrevPerson(){ collectEosEdits(); if(eosEditPersonIdx>0) eosEditPersonIdx--; buildEosEditor(); try{document.getElementById('eosEditView').scrollIntoView({block:'start'});}catch(e){} }
+function eosEditNextPerson(){ collectEosEdits(); const order=eosEditOrder(); if(eosEditPersonIdx<order.length-1) eosEditPersonIdx++; buildEosEditor(); try{document.getElementById('eosEditView').scrollIntoView({block:'start'});}catch(e){} }
 function collectEosEdits(){
   const q=curQuarter(); if(!q) return;
   if(userScope==="owner"){
