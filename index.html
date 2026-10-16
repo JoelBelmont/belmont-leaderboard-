@@ -1341,10 +1341,10 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.c
 let slideMode=false, slides=[], slideIdx=0, slideTimer=null, slideDataTimer=null, slidePhotos=[], slidePhotoIdx=0;
 const SLIDE_MS=8000;
 /* auto-detect photos: drop 1.jpg, 2.jpg, ... into a tv-photos/ folder in the repo — no code changes needed */
-function probePhotos(){
+function probePhotos(cb){
   slidePhotos=[]; const exts=['jpg','jpeg','png','webp']; let misses=0;
   (function tryNum(num){
-    if(misses>=3 || num>60) return;
+    if(misses>=3 || num>60){ if(cb) cb(); return; }   // done probing — let the caller rebuild the slide list with the photos
     (function tryExt(ei){
       if(ei>=exts.length){ misses++; tryNum(num+1); return; }
       const url='tv-photos/'+num+'.'+exts[ei], img=new Image();
@@ -1420,7 +1420,7 @@ function enterSlideshow(){
   document.body.classList.add('slide-mode');
   const sv=document.getElementById('slideView'); sv.innerHTML='<button id="slExit" onclick="exitSlideshow()">&#10005; Exit slideshow</button>'; sv.classList.add('on');
   try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
-  probePhotos();                                   // async; photos appear from the next loop once they load
+  probePhotos(()=>{ if(slideMode) slides=buildSlides(); });   // once photos load, rebuild so they appear on the FIRST loop
   slides=buildSlides(); showSlide(0); armSlideTimer();
   if(!slideDataTimer && CLOUD){ slideDataTimer=setInterval(async()=>{ try{ await loadState(); eosViewQuarter=state.eosCurrent||eosViewQuarter; ensureQuarter(eosViewQuarter); }catch(e){} }, 120000); }
 }
