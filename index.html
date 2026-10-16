@@ -335,6 +335,56 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   /* TV: keep cards in role order (grouped) but hide the full-width role headers so groups pack
      tightly and the cards stay large — single-person roles would otherwise waste whole rows */
   body.tv-mode #eosView .eos-ghead{ display:none; }
+
+  /* ===== TV SLIDESHOW ===== */
+  .btn-slide{ background:#7A5A2E; color:#fff; }
+  body.slide-mode{ overflow:hidden; }
+  #slideView{ position:fixed; inset:0; z-index:100000; background:var(--paper); display:none; overflow:hidden; }
+  #slideView.on{ display:block; }
+  #slideView .slide{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .6s ease; padding:4vh 4vw; box-sizing:border-box; }
+  #slideView .slide.show{ opacity:1; }
+  #slideView .slide.photo{ padding:0; background:#000; }
+  #slideView .slide.photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  #slideView .slide.photo .wm{ position:absolute; left:28px; bottom:22px; color:#fff; font-weight:800; font-size:24px; letter-spacing:.5px; text-shadow:0 2px 10px rgba(0,0,0,.65); }
+  #slideView .sfit{ transform-origin:center center; }
+  #slExit{ position:fixed; top:14px; right:16px; z-index:100002; background:var(--slate); color:#fff; font-size:14px; opacity:.4; }
+  #slExit:hover{ opacity:1; }
+  #slideView .scap{ font-size:22px; color:var(--mid); font-weight:700; margin-bottom:18px; letter-spacing:.3px; }
+  /* person slide */
+  #slideView .pslide{ width:1200px; max-width:94vw; text-align:center; }
+  #slideView .pslide .pn{ font-size:76px; font-weight:800; color:var(--teal); line-height:1.02; }
+  #slideView .pslide .pr{ font-size:30px; color:var(--mid); margin-top:6px; }
+  #slideView .pslide .pct{ font-size:92px; font-weight:800; margin:16px 0 6px; line-height:1; }
+  #slideView .pslide .pct small{ font-size:.3em; color:var(--mid); font-weight:800; letter-spacing:1px; vertical-align:middle; }
+  #slideView .pslide .pbar{ height:22px; background:var(--line); border-radius:13px; overflow:hidden; max-width:900px; margin:0 auto 30px; }
+  #slideView .pslide .pbar i{ display:block; height:100%; border-radius:13px; }
+  #slideView .pslide .g{ display:flex; align-items:center; gap:18px; max-width:1120px; margin:0 auto; padding:16px 0; border-top:1.5px dashed var(--line); }
+  #slideView .pslide .g:first-of-type{ border-top:none; }
+  #slideView .pslide .gbadge{ font-size:18px; font-weight:800; border-radius:10px; padding:6px 16px; color:#fff; white-space:nowrap; }
+  #slideView .pslide .gbadge.b-on{ background:#3E9E57; } #slideView .pslide .gbadge.b-off{ background:#D23F2C; } #slideView .pslide .gbadge.b-done{ background:var(--gold); }
+  #slideView .pslide .gt{ font-size:32px; font-weight:700; color:var(--slate); text-align:left; flex:1 1 auto; }
+  #slideView .pslide .gt.done{ text-decoration:line-through; color:var(--mid); }
+  #slideView .pslide .gtrail{ display:flex; gap:6px; flex:0 0 auto; }
+  #slideView .pslide .gcell{ width:28px; height:28px; border-radius:7px; background:#eee4cf; }
+  #slideView .pslide .gcell.on{ background:#3E9E57; } #slideView .pslide .gcell.off{ background:#D23F2C; } #slideView .pslide .gcell.done{ background:var(--gold); }
+  #slideView .pslide .gcell.now{ outline:3px solid var(--teal); outline-offset:1px; }
+  /* team-pulse slide */
+  #slideView .plslide{ width:1400px; max-width:94vw; text-align:center; }
+  #slideView .plslide h2{ font-size:54px; color:var(--teal); margin:0 0 4px; }
+  #slideView .plslide .pls-ring{ width:240px; height:240px; border-radius:50%; margin:6px auto 0; display:flex; align-items:center; justify-content:center; position:relative; }
+  #slideView .plslide .pls-ring:before{ content:""; position:absolute; inset:26px; background:var(--paper); border-radius:50%; }
+  #slideView .plslide .pls-ring .rv{ position:relative; }
+  #slideView .plslide .pls-ring b{ display:block; font-size:66px; color:var(--teal); line-height:1; }
+  #slideView .plslide .pls-ring span{ display:block; font-size:18px; color:var(--mid); font-weight:800; letter-spacing:1px; }
+  #slideView .plslide .pls-tiles{ display:flex; gap:22px; justify-content:center; margin:24px 0; flex-wrap:wrap; }
+  #slideView .plslide .pls-tile{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px 30px; min-width:150px; }
+  #slideView .plslide .pls-tile b{ display:block; font-size:48px; line-height:1; }
+  #slideView .plslide .pls-tile span{ display:block; font-size:18px; color:var(--slate); font-weight:700; margin-top:6px; }
+  #slideView .plslide .pls-tile.on b{ color:#3E9E57; } #slideView .plslide .pls-tile.done b{ color:var(--gold); } #slideView .plslide .pls-tile.off b{ color:#D23F2C; } #slideView .plslide .pls-tile.days b{ color:var(--teal); }
+  #slideView .plslide .pls-stars{ display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  #slideView .plslide .pls-star{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 26px; min-width:210px; }
+  #slideView .plslide .pls-star.s1{ background:var(--goldlt); border-color:var(--gold); }
+  #slideView .plslide .pls-star .m{ font-size:34px; } #slideView .plslide .pls-star .n{ font-size:26px; font-weight:800; color:var(--teal); } #slideView .plslide .pls-star .s{ font-size:16px; color:var(--slate); font-weight:600; margin-top:4px; }
   /* shrink the top band + card spacing so the whole board scales up to fill the screen */
   body.tv-mode #eosView .eos-pulse{ margin-top:10px; padding:12px 18px; gap:16px; }
   body.tv-mode #eosView .eos-ring{ width:108px; height:108px; }
@@ -377,11 +427,13 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   <button class="btn-review" id="reviewBtn" onclick="enterReview()">&#127916; Month in Review</button>
   <button class="btn-cash" id="cashBtn" style="display:none;" onclick="toggleCash()"></button>
   <button class="btn-eos" id="eosBtn" style="display:none;" onclick="toggleEosMode()"></button>
+  <button class="btn-slide" id="slideBtn" style="display:none;" onclick="enterSlideshow()">&#127916; TV Slideshow</button>
 </div>
 <button id="tvExit" onclick="exitTV()">&#10005; Exit TV</button>
 <div id="reviewView" class="hidden"></div>
 <div id="eosView" class="hidden"></div>
 <div id="eosEditView" class="hidden"></div>
+<div id="slideView"></div>
 
 <!-- ============ DISPLAY ============ -->
 <div id="displayView">
@@ -817,6 +869,8 @@ function syncEditBtn(){
   const eb=document.getElementById('eosBtn');
   if(eb){ eb.style.display = (userScope==="owner") ? "" : "none";               // only the owner flips what the team sees
     eb.innerHTML = eos ? '&#128202; EOS Mode: ON' : '&#128202; EOS Mode: OFF'; }
+  const slb=document.getElementById('slideBtn');
+  if(slb) slb.style.display = eos ? "" : "none";                                // slideshow is for the EOS Goals board
 }
 
 function distinctLabels(M){
@@ -1281,6 +1335,106 @@ function exitTV(){
 }
 window.addEventListener('resize', ()=>{ if(document.body.classList.contains('tv-mode')) fitTV(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('tv-mode')) exitTV(); });
+
+/* ===================== TV SLIDESHOW (EOS) ===================== */
+let slideMode=false, slides=[], slideIdx=0, slideTimer=null, slideDataTimer=null, slidePhotos=[], slidePhotoIdx=0;
+const SLIDE_MS=8000;
+/* auto-detect photos: drop 1.jpg, 2.jpg, ... into a tv-photos/ folder in the repo — no code changes needed */
+function probePhotos(){
+  slidePhotos=[]; const exts=['jpg','jpeg','png','webp']; let misses=0;
+  (function tryNum(num){
+    if(misses>=3 || num>60) return;
+    (function tryExt(ei){
+      if(ei>=exts.length){ misses++; tryNum(num+1); return; }
+      const url='tv-photos/'+num+'.'+exts[ei], img=new Image();
+      img.onload=()=>{ slidePhotos.push(url); misses=0; tryNum(num+1); };
+      img.onerror=()=>tryExt(ei+1);
+      img.src=url;
+    })(0);
+  })(1);
+}
+function buildSlides(){
+  const havePhotos=slidePhotos.length>0;
+  const ppl=state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0);
+  const out=[{type:'pulse'}], shown={};
+  GROUPS.forEach(gk=>{
+    const members=ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!members.length) return;
+    members.forEach(p=>{ shown[p.id]=1; out.push({type:'person', id:p.id}); });
+    if(havePhotos) out.push({type:'photo'});            // a photo break after each role group
+  });
+  const leftover=ppl.filter(p=>!shown[p.id]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(leftover.length){ leftover.forEach(p=>out.push({type:'person', id:p.id})); if(havePhotos) out.push({type:'photo'}); }
+  return out;
+}
+function slidePulseHtml(){
+  const q=curQuarter(); if(!q) return '';
+  const ppl=state.people.filter(p=>p.location===viewLoc && personRocks(p.id).length>0);
+  let on=0,off=0,done=0; ppl.forEach(p=>personRocks(p.id).forEach(r=>{const c=rockCurrent(r); if(c==='done')done++; else if(c==='off')off++; else if(c==='on')on++;}));
+  const tot=on+off+done, teamPct=tot?Math.round((on+done)/tot*100):0;
+  const qe=quarterEnd(eosViewQuarter); const t=new Date(); t.setHours(0,0,0,0); const daysLeft=qe?Math.max(0,Math.round((qe-t)/86400000)):'';
+  const nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
+  const ranked=ppl.map(p=>({p,done:personRocks(p.id).filter(r=>rockCurrent(r)==='done').length,pct:personPct(p.id),streak:Math.max(0,...personRocks(p.id).map(rockTrailGreen))}))
+    .filter(x=>x.pct>=70).sort((a,b)=>b.pct-a.pct||b.done-a.done||b.streak-a.streak).slice(0,3);
+  const medals=["&#129351;","&#129352;","&#129353;"];
+  let stars=''; if(ranked.length){ stars='<div class="scap" style="margin:6px 0 10px">&#11088; Rock Stars This Week</div><div class="pls-stars">'+ranked.map((x,i)=>{const bits=[]; if(x.done)bits.push(x.done+' Done'); bits.push(x.pct+'% on pace'); if(x.streak>=2)bits.push('&#128293; '+x.streak+' wks');
+    return '<div class="pls-star'+(i===0?' s1':'')+'"><div class="m">'+medals[i]+'</div><div class="n">'+esc(x.p.name)+'</div><div class="s">'+bits.join(' &middot; ')+'</div></div>';}).join('')+'</div>'; }
+  return '<div class="sfit plslide"><h2>Belmont &mdash; Weekly Goals</h2><div class="scap">'+esc(LOCATIONS[viewLoc]||'')+' &middot; '+esc(q.label||'')+' &middot; Week '+nowWeek+' of '+q.weeks+'</div>'
+    +'<div class="pls-ring" style="background:conic-gradient(#3E9E57 0 '+teamPct+'%, #e9e2d2 '+teamPct+'% 100%)"><div class="rv"><b>'+teamPct+'%</b><span>ON PACE</span></div></div>'
+    +'<div class="pls-tiles"><div class="pls-tile on"><b>'+on+'</b><span>On Track</span></div><div class="pls-tile done"><b>'+done+'</b><span>Done</span></div><div class="pls-tile off"><b>'+off+'</b><span>Off Track</span></div>'+(daysLeft!==''?'<div class="pls-tile days"><b>'+daysLeft+'</b><span>Days Left</span></div>':'')+'</div>'
+    +stars+'</div>';
+}
+function slidePersonHtml(p){
+  const q=curQuarter(), rocks=personRocks(p.id), pct=personPct(p.id), col=eosBarColor(pct), nowWeek=Math.min(q.weeks,Math.max(1,Number(q.week)||1));
+  let goals='';
+  rocks.forEach(r=>{ const c=rockCurrent(r); const cls=c==='done'?'b-done':c==='off'?'b-off':'b-on'; const lbl=c==='done'?'&#9989; DONE':c==='off'?'OFF TRACK':'ON TRACK';
+    let cells=''; for(let i=0;i<q.weeks;i++){ const v=(r.status||[])[i]; cells+='<span class="gcell'+(v?(' '+v):'')+((i+1===nowWeek)?' now':'')+'"></span>'; }
+    goals+='<div class="g"><span class="gbadge '+cls+'">'+lbl+'</span><span class="gt'+(c==='done'?' done':'')+'">'+esc(r.title||'(untitled Goal)')+'</span><span class="gtrail">'+cells+'</span></div>';
+  });
+  return '<div class="sfit pslide"><div class="scap">'+esc(q.label||'')+' &middot; Week '+nowWeek+' of '+q.weeks+'</div>'
+    +'<div class="pn">'+esc(p.name)+'</div><div class="pr">'+esc(p.role)+'</div>'
+    +'<div class="pct" style="color:'+col+'">'+pct+'% <small>ON PACE</small></div>'
+    +'<div class="pbar"><i style="width:'+pct+'%;background:'+col+'"></i></div>'+goals+'</div>';
+}
+function slidePhotoHtml(){ if(!slidePhotos.length) return ''; const url=slidePhotos[slidePhotoIdx%slidePhotos.length]; slidePhotoIdx++; return '<img src="'+esc(url)+'"><div class="wm">Belmont Clean + Restore</div>'; }
+function fitSlideEl(el){ if(!el) return; el.style.transform='none'; const availH=window.innerHeight*0.9, availW=window.innerWidth*0.94, h=el.scrollHeight, w=el.scrollWidth; if(h<=0||w<=0) return; el.style.transform='scale('+Math.min(1.7, availH/h, availW/w)+')'; }
+function showSlide(i){
+  const sv=document.getElementById('slideView'); if(!slides.length) return;
+  if(i<0) i=slides.length-1; if(i>=slides.length) i=0;
+  slideIdx=i; const s=slides[i];
+  let cls='slide', inner='';
+  if(s.type==='person'){ const p=state.people.find(x=>x.id===s.id); if(!p) return nextSlide(); inner=slidePersonHtml(p); }
+  else if(s.type==='photo'){ if(!slidePhotos.length) return nextSlide(); cls='slide photo'; inner=slidePhotoHtml(); }
+  else { inner=slidePulseHtml(); }
+  const div=document.createElement('div'); div.className=cls; div.innerHTML=inner; sv.appendChild(div);
+  requestAnimationFrame(()=>{ div.classList.add('show'); const f=div.querySelector('.sfit'); fitSlideEl(f); setTimeout(()=>fitSlideEl(f),140); });  // re-fit after any fullscreen/layout settle
+  sv.querySelectorAll('.slide').forEach(old=>{ if(old!==div){ old.classList.remove('show'); setTimeout(()=>{ try{old.remove();}catch(e){} }, 700); } });
+}
+function nextSlide(){ let n=slideIdx+1; if(n>=slides.length){ n=0; slides=buildSlides(); } showSlide(n); armSlideTimer(); }
+function prevSlide(){ showSlide(slideIdx-1); armSlideTimer(); }
+function armSlideTimer(){ if(slideTimer) clearTimeout(slideTimer); slideTimer=setTimeout(nextSlide, SLIDE_MS); }
+function enterSlideshow(){
+  if(!state.eosMode){ alert("Turn on EOS Mode first — the slideshow runs the Weekly Goals board."); return; }
+  slideMode=true; slideIdx=0; slidePhotoIdx=0;
+  document.body.classList.add('slide-mode');
+  const sv=document.getElementById('slideView'); sv.innerHTML='<button id="slExit" onclick="exitSlideshow()">&#10005; Exit slideshow</button>'; sv.classList.add('on');
+  try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
+  probePhotos();                                   // async; photos appear from the next loop once they load
+  slides=buildSlides(); showSlide(0); armSlideTimer();
+  if(!slideDataTimer && CLOUD){ slideDataTimer=setInterval(async()=>{ try{ await loadState(); eosViewQuarter=state.eosCurrent||eosViewQuarter; ensureQuarter(eosViewQuarter); }catch(e){} }, 120000); }
+}
+function exitSlideshow(){
+  slideMode=false;
+  if(slideTimer){ clearTimeout(slideTimer); slideTimer=null; }
+  if(slideDataTimer){ clearInterval(slideDataTimer); slideDataTimer=null; }
+  document.body.classList.remove('slide-mode');
+  const sv=document.getElementById('slideView'); sv.classList.remove('on'); sv.innerHTML='';
+  try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
+  render();
+}
+window.addEventListener('resize', ()=>{ if(slideMode) fitSlideEl(document.querySelector('#slideView .slide.show .sfit')); });
+document.addEventListener('fullscreenchange', ()=>{ if(slideMode) setTimeout(()=>fitSlideEl(document.querySelector('#slideView .slide.show .sfit')),90); });
+document.addEventListener('keydown', e=>{ if(!slideMode) return; if(e.key==='Escape'){ exitSlideshow(); } else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); nextSlide(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); prevSlide(); } });
 
 /* ========================= EOS ROCKS ========================= */
 let eosViewQuarter=null, eosEditWeek=null;
