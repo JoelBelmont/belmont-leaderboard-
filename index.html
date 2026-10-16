@@ -1344,7 +1344,7 @@ const SLIDE_MS=8000;
 function probePhotos(cb){
   slidePhotos=[]; const exts=['jpg','jpeg','png','webp']; let misses=0;
   (function tryNum(num){
-    if(misses>=3 || num>60){ if(cb) cb(); return; }   // done probing — let the caller rebuild the slide list with the photos
+    if(misses>=6 || num>60){ if(cb) cb(); return; }   // tolerate gaps from removed photos; done → caller rebuilds the slide list
     (function tryExt(ei){
       if(ei>=exts.length){ misses++; tryNum(num+1); return; }
       const url='tv-photos/'+num+'.'+exts[ei], img=new Image();
@@ -1399,7 +1399,11 @@ function slidePersonHtml(p){
     +'<div class="pct" style="color:'+col+'">'+pct+'% <small>ON PACE</small></div>'
     +'<div class="pbar"><i style="width:'+pct+'%;background:'+col+'"></i></div>'+goals+'</div>';
 }
-function slidePhotoHtml(){ if(!slidePhotos.length) return ''; const url=slidePhotos[slidePhotoIdx%slidePhotos.length]; slidePhotoIdx++; return '<img src="'+esc(url)+'"><div class="wm">Belmont Clean + Restore</div>'; }
+function shufflePhotos(){ for(let i=slidePhotos.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0, t=slidePhotos[i]; slidePhotos[i]=slidePhotos[j]; slidePhotos[j]=t; } }
+function slidePhotoHtml(){ if(!slidePhotos.length) return '';
+  if(slidePhotoIdx>=slidePhotos.length){ slidePhotoIdx=0; shufflePhotos(); }   // reshuffle each full pass for a fresh random order
+  const url=slidePhotos[slidePhotoIdx++];
+  return '<img src="'+esc(url)+'"><div class="wm">Belmont Clean + Restore</div>'; }
 function fitSlideEl(el){ if(!el) return; el.style.transform='none'; const availH=window.innerHeight*0.9, availW=window.innerWidth*0.94, h=el.scrollHeight, w=el.scrollWidth; if(h<=0||w<=0) return; el.style.transform='scale('+Math.min(1.7, availH/h, availW/w)+')'; }
 function showSlide(i){
   const sv=document.getElementById('slideView'); if(!slides.length) return;
@@ -1422,7 +1426,7 @@ function enterSlideshow(){
   document.body.classList.add('slide-mode');
   const sv=document.getElementById('slideView'); sv.innerHTML='<button id="slExit" onclick="exitSlideshow()">&#10005; Exit slideshow</button>'; sv.classList.add('on');
   try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
-  probePhotos(()=>{ if(slideMode) slides=buildSlides(); });   // once photos load, rebuild so they appear on the FIRST loop
+  probePhotos(()=>{ shufflePhotos(); if(slideMode) slides=buildSlides(); });   // randomize order, then rebuild so photos appear on the FIRST loop
   slides=buildSlides(); showSlide(0); armSlideTimer();
   if(!slideDataTimer && CLOUD){ slideDataTimer=setInterval(async()=>{ try{ await loadState(); eosViewQuarter=state.eosCurrent||eosViewQuarter; ensureQuarter(eosViewQuarter); }catch(e){} }, 120000); }
 }
