@@ -2596,7 +2596,10 @@ function resetWidths(){
   updateAuthBar();
   buildMonthNav();
   render();
-  if(new URLSearchParams(location.search).get('tv')==='1') enterTV();
+  { const qs=new URLSearchParams(location.search);
+    if(qs.get('tv')==='1') enterTV();
+    if(qs.get('slideshow')==='1'){ if(state.eosMode){ enterSlideshow(); } else { enterTV(); } }   // one-click TV link → full rotating slideshow (falls back to the static board if EOS is off)
+  }
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
     sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; eosViewQuarter=state.eosCurrent||thisQuarterKey(); ensureQuarter(eosViewQuarter); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
   }

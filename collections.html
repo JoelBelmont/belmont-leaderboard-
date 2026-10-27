@@ -50,6 +50,11 @@
   .btn-add{ background:var(--gold); color:#fff; border:none; border-radius:10px; padding:11px 22px; font-size:16px; font-weight:800; cursor:pointer; height:42px; }
   .signin-cta{ background:#fff; border:1px dashed var(--mid); border-radius:14px; padding:18px; text-align:center; color:var(--slate); margin:0 0 20px; }
   .signin-cta button{ margin-top:8px; }
+  .monthbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 2px 12px; }
+  .monthbar .mlbl{ font-size:14px; font-weight:800; color:var(--teal); }
+  .monthbar select{ border:1.5px solid var(--line); border-radius:9px; padding:8px 12px; font-size:15px; font-weight:700; color:var(--slate); background:#fff; cursor:pointer; }
+  .monthbar .pastnote{ font-size:13px; font-weight:700; color:var(--gold); }
+  .monthbar .pastnote a{ color:var(--teal); }
 
   /* ===== Wins Wall (shared office + TV) ===== */
   .board{ background:var(--paper); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:0 8px 26px rgba(31,78,95,.12); }
@@ -161,6 +166,7 @@
 
     <div id="goalPanel"></div>
     <div id="formArea"></div>
+    <div id="monthBar"></div>
     <div class="board"><div class="bbar"></div><div class="wallGrid" id="wall"></div></div>
     <div class="footnote" id="footnote"></div>
   </div>
@@ -201,8 +207,11 @@ let celebrated = false;                          // guard so confetti fires once
 
 /* ---- helpers ---- */
 function monthKey(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
-const MONTH = monthKey();
-function monthLabel(){ return new Date(MONTH+"-01T00:00:00").toLocaleString(undefined,{month:"long", year:"numeric"}); }
+function curMonth(){ return monthKey(); }                 // always today's calendar month (recomputed live)
+let viewMonth = curMonth();                               // the month on screen (defaults to current)
+let followingCurrent = true;                              // true until someone picks a past month from the dropdown
+let availableMonths = [];                                 // months that have collections data, for the dropdown
+function monthLabel(m){ return new Date((m||viewMonth)+"-01T00:00:00").toLocaleString(undefined,{month:"long", year:"numeric"}); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function money(n){ n=Math.round(Number(n)||0); return "$"+n.toLocaleString(); }
 function parseAmount(s){ const n=Number(String(s).replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:0; }
@@ -231,30 +240,48 @@ function localSave(box){ try{ localStorage.setItem(LS_KEY, JSON.stringify(box));
 async function loadAll(){
   if(CLOUD){
     try{
-      const g = await sb.from("collections_goals").select("target,reward,show_reward,show_on_tv").eq("month",MONTH).eq("location",LOCATION).maybeSingle();
+      const g = await sb.from("collections_goals").select("target,reward,show_reward,show_on_tv").eq("month",viewMonth).eq("location",LOCATION).maybeSingle();
       cfg = (g.data) ? { target:Number(g.data.target)||0, reward:g.data.reward||"", showReward:g.data.show_reward!==false, showOnTv:g.data.show_on_tv!==false } : { target:0, reward:"", showReward:true, showOnTv:true };
       const e = await sb.from("collections_entries").select("*")
-        .eq("month",MONTH).eq("location",LOCATION).eq("void",false)
+        .eq("month",viewMonth).eq("location",LOCATION).eq("void",false)
         .order("created_at",{ascending:false});
       entries = e.data || [];
     }catch(err){ console.warn("load failed", err); }
   } else {
     const box = localLoad();
-    const gk = MONTH+"|"+LOCATION;
+    const gk = viewMonth+"|"+LOCATION;
     cfg = box.goals[gk] ? { target:Number(box.goals[gk].target)||0, reward:box.goals[gk].reward||"", showReward:box.goals[gk].showReward!==false, showOnTv:box.goals[gk].showOnTv!==false } : { target:0, reward:"", showReward:true, showOnTv:true };
-    entries = box.entries.filter(x=>x.month===MONTH && x.location===LOCATION && !x.void)
+    entries = box.entries.filter(x=>x.month===viewMonth && x.location===LOCATION && !x.void)
                          .sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
   }
+}
+
+// the list of months that have any collections data, for the history dropdown
+async function loadMonths(){
+  const set=new Set([curMonth()]);
+  if(CLOUD){
+    try{
+      const g=await sb.from("collections_goals").select("month").eq("location",LOCATION);
+      (g.data||[]).forEach(r=>set.add(r.month));
+      const e=await sb.from("collections_entries").select("month").eq("location",LOCATION).eq("void",false);
+      (e.data||[]).forEach(r=>set.add(r.month));
+    }catch(e){}
+  } else {
+    const box=localLoad();
+    Object.keys(box.goals||{}).forEach(k=>set.add(k.split("|")[0]));
+    (box.entries||[]).forEach(e=>{ if(e.location===LOCATION && !e.void) set.add(e.month); });
+  }
+  availableMonths = Array.from(set).sort().reverse();   // newest first
 }
 
 async function saveGoalData(target, reward, showReward, showOnTv){
   if(CLOUD){
     await sb.from("collections_goals").upsert(
-      { month:MONTH, location:LOCATION, target, reward, show_reward:showReward, show_on_tv:showOnTv, updated_at:new Date().toISOString() },
+      { month:curMonth(), location:LOCATION, target, reward, show_reward:showReward, show_on_tv:showOnTv, updated_at:new Date().toISOString() },
       { onConflict:"month,location" }
     );
   } else {
-    const box=localLoad(); box.goals[MONTH+"|"+LOCATION]={target,reward,showReward,showOnTv}; localSave(box);
+    const box=localLoad(); box.goals[curMonth()+"|"+LOCATION]={target,reward,showReward,showOnTv}; localSave(box);
   }
 }
 
@@ -282,7 +309,7 @@ async function addWin(){
   const person=nameSel.value, wo=woEl.value.trim(), amount=parseAmount(amtEl.value);
   if(!person){ alert("Please pick who collected this."); return; }
   if(amount<=0){ alert("Please enter a dollar amount."); amtEl.focus(); return; }
-  const rec={ id:uid(), created_at:new Date().toISOString(), month:MONTH, location:LOCATION,
+  const rec={ id:uid(), created_at:new Date().toISOString(), month:curMonth(), location:LOCATION,
               person, work_order:wo, amount, void:false, created_by:userEmail||null };
   try{ localStorage.setItem(LAST_NAME_KEY, person); }catch(e){}
   await addEntryData(rec);
@@ -332,8 +359,24 @@ function render(){
   renderAuth();
   renderGoalPanel();
   renderForm();
+  renderMonthBar();
   renderWall();
   maybeCelebrate();
+}
+
+const PAST_VIEW = () => viewMonth !== curMonth();   // true when looking at a past month (read-only)
+
+function renderMonthBar(){
+  const el=document.getElementById("monthBar");
+  if(IS_TV || availableMonths.length<=1 && !PAST_VIEW()){ el.style.display="none"; el.innerHTML=""; return; }
+  el.style.display="";
+  const opts=availableMonths.map(m=>'<option value="'+m+'"'+(m===viewMonth?" selected":"")+'>'+esc(monthLabel(m))+(m===curMonth()?" (current)":"")+'</option>').join("");
+  el.innerHTML='<div class="monthbar"><span class="mlbl">📅 Month:</span><select id="monthPick" onchange="pickMonth(this.value)">'+opts+'</select>'
+    +(PAST_VIEW()?'<span class="pastnote">Viewing a past month (read-only) — <a href="#" onclick="pickMonth(curMonth());return false;">back to this month</a></span>':'')+'</div>';
+}
+function pickMonth(m){
+  viewMonth=m; followingCurrent=(m===curMonth());
+  loadAll().then(()=>{ render(); });
 }
 
 function renderAuth(){
@@ -350,7 +393,7 @@ function renderAuth(){
 
 function renderGoalPanel(){
   const el=document.getElementById("goalPanel");
-  if(IS_TV || userScope!=="owner"){ el.className=""; el.style.display="none"; el.innerHTML=""; return; }
+  if(IS_TV || userScope!=="owner" || PAST_VIEW()){ el.className=""; el.style.display="none"; el.innerHTML=""; return; }
   el.className="goalPanel"; el.style.display="";
   const show = cfg.showReward!==false;
   el.innerHTML =
@@ -364,7 +407,7 @@ function renderGoalPanel(){
 
 function renderForm(){
   const el=document.getElementById("formArea");
-  if(IS_TV){ el.style.display="none"; el.innerHTML=""; return; }
+  if(IS_TV || PAST_VIEW()){ el.style.display="none"; el.innerHTML=""; return; }   // no logging into a past month
   el.style.display="";
   if(CLOUD && userScope==="viewer"){
     el.innerHTML='<div class="signin-cta">Sign in to log a collection win.<br><button class="btn-mini" onclick="signIn()">Sign in</button></div>';
@@ -461,6 +504,7 @@ function clearSearch(){ query=""; page=0; renderWall(); }
    CELEBRATION
    ============================================================ */
 function maybeCelebrate(){
+  if(PAST_VIEW()){ celebrated=true; return; }            // never re-blast confetti for a past month
   const met = cfg.target>0 && total()>=cfg.target;
   if(met && !celebrated){ celebrated=true; confettiBurst(); showGoalBanner(); }
   if(!met) celebrated=false;
@@ -563,7 +607,7 @@ function syncSeen(allowCelebrate){
   if(seenIds===null){ seenIds=new Set(ids); return; }         // first load: don't celebrate the backlog
   const fresh = entries.filter(e=>!seenIds.has(e.id));
   ids.forEach(id=>seenIds.add(id));
-  if(allowCelebrate && fresh.length){
+  if(allowCelebrate && fresh.length && !PAST_VIEW()){
     const top = Math.max.apply(null, fresh.map(e=>Number(e.amount)||0));
     celebrateEntry(top, { sound:false });                     // arrivals from elsewhere: visuals only
   }
@@ -604,17 +648,24 @@ function fitTV(){
   sc.style.transform="scale("+Math.min(k,1.6)+")";
 }
 
+// if the clock has rolled into a new month and we're following "current", move with it
+function rolloverIfNeeded(){
+  if(followingCurrent && viewMonth!==curMonth()){ viewMonth=curMonth(); seenIds=null; return true; }
+  return false;
+}
+
 async function init(){
   if(IS_TV){ document.body.classList.add("tv"); document.getElementById("footnote").style.display="none"; }
   await refreshScope();
+  await loadMonths();
   await loadAll();
   render();
   syncSeen(false);                           // seed the "already seen" set without celebrating the backlog
   if(IS_TV){ fitTV(); addEventListener("resize", fitTV); setTimeout(fitTV,120); }
-  // keep it live — and celebrate wins that arrive from other devices
-  setInterval(async()=>{ await loadAll(); render(); syncSeen(true); if(IS_TV) fitTV(); }, REFRESH_MS);
+  // keep it live — roll into the new month on the 1st, refresh the month list, celebrate arrivals
+  setInterval(async()=>{ rolloverIfNeeded(); await loadMonths(); await loadAll(); render(); syncSeen(true); if(IS_TV) fitTV(); }, REFRESH_MS);
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); await loadAll(); render(); });
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); await loadMonths(); await loadAll(); render(); });
   }
 }
 window.addEventListener("DOMContentLoaded", init);
