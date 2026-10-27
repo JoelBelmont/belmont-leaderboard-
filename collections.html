@@ -193,7 +193,7 @@ const sb = CLOUD ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 let userScope = CLOUD ? "viewer" : "owner";      // offline test = full control
 let userEmail = null;
-let cfg = { target: 0, reward: "", showReward: true };   // this month's goal + reward
+let cfg = { target: 0, reward: "", showReward: true, showOnTv: true };   // this month's goal + reward + toggles
 let entries = [];                                // active (non-void) entries for this month+location
 let page = 0;
 let query = "";
@@ -231,8 +231,8 @@ function localSave(box){ try{ localStorage.setItem(LS_KEY, JSON.stringify(box));
 async function loadAll(){
   if(CLOUD){
     try{
-      const g = await sb.from("collections_goals").select("target,reward,show_reward").eq("month",MONTH).eq("location",LOCATION).maybeSingle();
-      cfg = (g.data) ? { target:Number(g.data.target)||0, reward:g.data.reward||"", showReward:g.data.show_reward!==false } : { target:0, reward:"", showReward:true };
+      const g = await sb.from("collections_goals").select("target,reward,show_reward,show_on_tv").eq("month",MONTH).eq("location",LOCATION).maybeSingle();
+      cfg = (g.data) ? { target:Number(g.data.target)||0, reward:g.data.reward||"", showReward:g.data.show_reward!==false, showOnTv:g.data.show_on_tv!==false } : { target:0, reward:"", showReward:true, showOnTv:true };
       const e = await sb.from("collections_entries").select("*")
         .eq("month",MONTH).eq("location",LOCATION).eq("void",false)
         .order("created_at",{ascending:false});
@@ -241,20 +241,20 @@ async function loadAll(){
   } else {
     const box = localLoad();
     const gk = MONTH+"|"+LOCATION;
-    cfg = box.goals[gk] ? { target:Number(box.goals[gk].target)||0, reward:box.goals[gk].reward||"", showReward:box.goals[gk].showReward!==false } : { target:0, reward:"", showReward:true };
+    cfg = box.goals[gk] ? { target:Number(box.goals[gk].target)||0, reward:box.goals[gk].reward||"", showReward:box.goals[gk].showReward!==false, showOnTv:box.goals[gk].showOnTv!==false } : { target:0, reward:"", showReward:true, showOnTv:true };
     entries = box.entries.filter(x=>x.month===MONTH && x.location===LOCATION && !x.void)
                          .sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
   }
 }
 
-async function saveGoalData(target, reward, showReward){
+async function saveGoalData(target, reward, showReward, showOnTv){
   if(CLOUD){
     await sb.from("collections_goals").upsert(
-      { month:MONTH, location:LOCATION, target, reward, show_reward:showReward, updated_at:new Date().toISOString() },
+      { month:MONTH, location:LOCATION, target, reward, show_reward:showReward, show_on_tv:showOnTv, updated_at:new Date().toISOString() },
       { onConflict:"month,location" }
     );
   } else {
-    const box=localLoad(); box.goals[MONTH+"|"+LOCATION]={target,reward,showReward}; localSave(box);
+    const box=localLoad(); box.goals[MONTH+"|"+LOCATION]={target,reward,showReward,showOnTv}; localSave(box);
   }
 }
 
@@ -313,8 +313,9 @@ async function deleteWin(id){
 async function saveGoal(){
   const t=parseAmount(document.getElementById("gTarget").value);
   const show=document.getElementById("gShowReward").checked;
+  const onTv=document.getElementById("gShowTv").checked;
   const r=document.getElementById("gReward").value.trim();
-  await saveGoalData(t, r, show);
+  await saveGoalData(t, r, show, onTv);
   await loadAll(); render();
   flashSaved();
 }
@@ -357,6 +358,7 @@ function renderGoalPanel(){
     +'<div class="fld"><label>Monthly goal ($)</label><input id="gTarget" inputmode="numeric" placeholder="50000" value="'+(cfg.target||"")+'"></div>'
     +'<label class="rwtoggle"><input type="checkbox" id="gShowReward"'+(show?" checked":"")+' onchange="toggleRewardField()"> Offer a reward when the goal is hit</label>'
     +'<div class="fld grow" id="rewardField"'+(show?"":' style="display:none"')+'><label>Reward</label><input id="gReward" placeholder="Spa Day for the Office Managers" value="'+esc(cfg.reward||"")+'"></div>'
+    +'<label class="rwtoggle"><input type="checkbox" id="gShowTv"'+((cfg.showOnTv!==false)?" checked":"")+'> Show on the office TV slideshow</label>'
     +'<button class="btn-save" onclick="saveGoal()">Save</button>';
 }
 

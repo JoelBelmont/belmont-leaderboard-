@@ -399,6 +399,25 @@ body.scoremode .rv-barfill{ background-repeat:no-repeat; background-position:lef
   #slideView .plslide .pls-star{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 26px; min-width:210px; }
   #slideView .plslide .pls-star.s1{ background:var(--goldlt); border-color:var(--gold); }
   #slideView .plslide .pls-star .m{ font-size:34px; } #slideView .plslide .pls-star .n{ font-size:26px; font-weight:800; color:var(--teal); } #slideView .plslide .pls-star .s{ font-size:16px; color:var(--slate); font-weight:600; margin-top:4px; }
+  /* collections goal slide (rides along in the rotation) */
+  #slideView .collslide{ width:1400px; max-width:94vw; text-align:center; }
+  #slideView .collslide h2{ font-size:54px; color:var(--teal); margin:0 0 4px; }
+  #slideView .collslide .pls-ring{ width:240px; height:240px; border-radius:50%; margin:16px auto 0; display:flex; align-items:center; justify-content:center; position:relative; }
+  #slideView .collslide .pls-ring:before{ content:""; position:absolute; inset:26px; background:var(--paper); border-radius:50%; }
+  #slideView .collslide .pls-ring .rv{ position:relative; }
+  #slideView .collslide .pls-ring b{ display:block; font-size:66px; color:var(--teal); line-height:1; }
+  #slideView .collslide .pls-ring span{ display:block; font-size:18px; color:var(--mid); font-weight:800; letter-spacing:1px; }
+  #slideView .collslide .big{ font-size:62px; font-weight:900; color:var(--teal); margin-top:16px; line-height:1; }
+  #slideView .collslide .sub{ font-size:27px; color:var(--slate); font-weight:700; margin-top:10px; }
+  #slideView .collslide .rwd{ display:inline-flex; align-items:center; gap:10px; margin-top:18px; background:var(--goldlt); border:2px solid var(--gold); color:#8a641f; font-weight:800; font-size:24px; padding:10px 24px; border-radius:999px; }
+  #slideView .collslide .met{ display:inline-block; margin-top:16px; background:#3E9E57; color:#fff; font-weight:900; font-size:26px; padding:11px 24px; border-radius:999px; }
+  #slideView .collslide .coll-wins{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:28px; }
+  #slideView .collslide .coll-win{ background:#fff; border:1px solid var(--line); border-left:6px solid #3E9E57; border-radius:16px; padding:14px 26px; min-width:200px; text-align:left; }
+  #slideView .collslide .coll-win.top{ background:var(--goldlt); border-left-color:var(--gold); }
+  #slideView .collslide .coll-win .wn{ font-size:26px; font-weight:800; color:var(--teal); }
+  #slideView .collslide .coll-win .wa{ font-size:30px; font-weight:900; color:#3E9E57; }
+  #slideView .collslide .coll-win.top .wa{ color:var(--gold); }
+  #slideView .collslide .coll-win .ww{ font-size:15px; color:var(--slate); opacity:.7; margin-top:2px; }
   /* shrink the top band + card spacing so the whole board scales up to fill the screen */
   body.tv-mode #eosView .eos-pulse{ margin-top:10px; padding:12px 18px; gap:16px; }
   body.tv-mode #eosView .eos-ring{ width:108px; height:108px; }
@@ -1370,10 +1389,43 @@ function probePhotos(cb){
 // photo breaks fall BETWEEN these blocks (not between every role), to keep pacing even:
 // Techs | Senior Techs | PMs | (BDR/PM + BDR + Office together)
 const SLIDE_BLOCKS = [["tech"], ["senior_tech"], ["pm_senior"], ["bdr_sales","bdr","office"]];
+
+/* ----- Collections goal slide (reads the separate collections tables; one company-wide goal) ----- */
+let collGoal={target:0,reward:"",showReward:true,showOnTv:true}, collEntries=[];
+function collMonthKey(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function collMoney(n){ n=Math.round(Number(n)||0); return "$"+n.toLocaleString(); }
+async function loadCollections(){
+  if(!CLOUD) return;                                   // no collections data outside the live site
+  try{
+    const m=collMonthKey();
+    const g=await sb.from("collections_goals").select("target,reward,show_reward,show_on_tv").eq("month",m).eq("location","roaring-fork").maybeSingle();
+    collGoal = (g.data) ? { target:Number(g.data.target)||0, reward:g.data.reward||"", showReward:g.data.show_reward!==false, showOnTv:g.data.show_on_tv!==false } : { target:0, reward:"", showReward:true, showOnTv:true };
+    const e=await sb.from("collections_entries").select("person,work_order,amount,created_at").eq("month",m).eq("location","roaring-fork").eq("void",false).order("created_at",{ascending:false}).limit(8);
+    collEntries = e.data || [];
+  }catch(err){ /* leave last-known values */ }
+}
+function collectionsSlideHtml(){
+  if(!(collGoal.target>0 || collEntries.length)) return "";
+  const t=collEntries.reduce((a,e)=>a+(Number(e.amount)||0),0), target=collGoal.target||0;
+  const pct=target>0?Math.max(0,Math.min(100,t/target*100)):0, met=target>0 && t>=target;
+  const ringCol=met?"var(--gold)":"#3E9E57", showRw=collGoal.showReward!==false && !!collGoal.reward;
+  const monthName=new Date(collMonthKey()+"-01T00:00:00").toLocaleString(undefined,{month:"long",year:"numeric"});
+  const wins=collEntries.slice(0,4).map((e,i)=>'<div class="coll-win'+(i===0?" top":"")+'"><div class="wn">'+esc(e.person||"—")+'</div><div class="wa">+'+collMoney(e.amount)+'</div><div class="ww">'+(e.work_order?"WO #"+esc(e.work_order):"")+'</div></div>').join("");
+  return '<div class="sfit collslide"><h2>'+(met?"Collections Goal &mdash; Reached! &#127881;":"Collections Goal")+'</h2>'
+    +'<div class="scap">'+esc(monthName)+' &middot; Roaring Fork / Glenwood Springs</div>'
+    +'<div class="pls-ring" style="background:conic-gradient('+ringCol+' 0 '+pct.toFixed(1)+'%, #e9e2d2 '+pct.toFixed(1)+'% 100%)"><div class="rv"><b>'+Math.round(pct)+'%</b><span>'+(met?"COMPLETE":"TO GOAL")+'</span></div></div>'
+    +'<div class="big">'+collMoney(t)+'</div>'
+    +'<div class="sub">'+(target>0?("of "+collMoney(target)+(met?"":" &middot; "+collMoney(target-t)+" to go")):"no goal set")+'</div>'
+    +(showRw?'<div class="'+(met?"met":"rwd")+'">'+(met?"&#127942; GOAL MET &mdash; ":"&#127873; ")+esc(collGoal.reward)+'</div>':(met?'<div class="met">&#127942; GOAL MET!</div>':''))
+    +(wins?'<div class="coll-wins">'+wins+'</div>':'')
+    +'</div>';
+}
+
 function buildSlides(){
   const havePhotos=slidePhotos.length>0;
   const ppl=state.people.filter(p=>p.location===viewLoc && eosActive(p.id) && personRocks(p.id).length>0);
   const out=[{type:'pulse'}], shown={};
+  if((collGoal.target>0 || collEntries.length) && collGoal.showOnTv!==false) out.push({type:'collections'});   // company-wide collections goal (owner can toggle it off)
   SLIDE_BLOCKS.forEach(block=>{
     let any=false;
     block.forEach(gk=>{ ppl.filter(p=>p.group===gk).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{ shown[p.id]=1; out.push({type:'person', id:p.id}); any=true; }); });
@@ -1425,6 +1477,7 @@ function showSlide(i){
   let cls='slide', inner='';
   if(s.type==='person'){ const p=state.people.find(x=>x.id===s.id); if(!p) return nextSlide(); inner=slidePersonHtml(p); }
   else if(s.type==='photo'){ if(!slidePhotos.length) return nextSlide(); cls='slide photo'; inner=slidePhotoHtml(); }
+  else if(s.type==='collections'){ inner=collectionsSlideHtml(); if(!inner) return nextSlide(); }
   else { inner=slidePulseHtml(); }
   const div=document.createElement('div'); div.className=cls; div.innerHTML=inner; sv.appendChild(div);
   requestAnimationFrame(()=>{ div.classList.add('show'); const f=div.querySelector('.sfit'); fitSlideEl(f); setTimeout(()=>fitSlideEl(f),140); });  // re-fit after any fullscreen/layout settle
@@ -1440,8 +1493,9 @@ function enterSlideshow(){
   const sv=document.getElementById('slideView'); sv.innerHTML='<button id="slExit" onclick="exitSlideshow()">&#10005; Exit slideshow</button>'; sv.classList.add('on');
   try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
   probePhotos(()=>{ shufflePhotos(); if(slideMode) slides=buildSlides(); });   // randomize order, then rebuild so photos appear on the FIRST loop
+  if(CLOUD) loadCollections().then(()=>{ if(slideMode) slides=buildSlides(); });   // pull the collections goal, then add its slide
   slides=buildSlides(); showSlide(0); armSlideTimer();
-  if(!slideDataTimer && CLOUD){ slideDataTimer=setInterval(async()=>{ try{ await loadState(); eosViewQuarter=state.eosCurrent||eosViewQuarter; ensureQuarter(eosViewQuarter); }catch(e){} }, 120000); }
+  if(!slideDataTimer && CLOUD){ slideDataTimer=setInterval(async()=>{ try{ await loadState(); eosViewQuarter=state.eosCurrent||eosViewQuarter; ensureQuarter(eosViewQuarter); await loadCollections(); }catch(e){} }, 120000); }
 }
 function exitSlideshow(){
   slideMode=false;
