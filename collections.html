@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belmont — Collections</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --teal:#1F4E5F; --mid:#2E7D8F; --gold:#C8923D; --sand:#F2EAD9; --slate:#3A4A52;
+    --green:#4A8C5E; --amber:#D9A441; --paper:#FBF8F2; --line:#D8D2C4; --lteal:#5B9AA8;
+    --goldlt:#F5ECDC; --hdrfill:#EAF1F3; --red:#B5503C;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{ background:#E7E2D6; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--slate); }
+  button{ font-family:inherit; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:18px 18px 60px; }
+
+  /* top bars */
+  .authbar{ display:flex; align-items:center; justify-content:flex-end; gap:10px; font-size:13px; padding:4px 2px 12px; flex-wrap:wrap; }
+  .authbar .who{ color:var(--slate); }
+  .authbar .scope{ font-weight:bold; padding:5px 12px; border-radius:20px; }
+  .authbar .scope.view{ background:var(--hdrfill); color:var(--mid); }
+  .authbar .scope.edit{ background:#e7f1ea; color:var(--green); }
+  .btn-mini{ background:var(--teal); color:#fff; border:none; border-radius:20px; padding:6px 13px; font-size:12px; font-weight:700; cursor:pointer; }
+  .brandhead{ text-align:center; margin-bottom:12px; }
+  .brandhead .bar{ height:8px; border-radius:6px; background:linear-gradient(90deg,var(--teal),var(--mid),var(--gold)); margin-bottom:12px; }
+  .brandhead h1{ color:var(--teal); font-size:30px; letter-spacing:.3px; }
+  .brandhead .sub{ color:var(--mid); font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:1.5px; margin-top:4px; }
+
+  /* owner goal panel */
+  .goalPanel{ background:#fff; border:1px solid var(--line); border-left:5px solid var(--gold); border-radius:14px; padding:14px 18px; margin:0 0 16px; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; }
+  .goalPanel .pt{ color:var(--gold); font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:.8px; width:100%; margin-bottom:2px; }
+  .fld{ display:flex; flex-direction:column; gap:4px; }
+  .fld label{ font-size:12px; font-weight:700; color:var(--slate); }
+  .fld input{ border:1.5px solid var(--line); border-radius:9px; padding:9px 12px; font-size:15px; color:var(--slate); background:#fff; }
+  .fld.grow{ flex:1 1 240px; }
+  .btn-save{ background:var(--green); color:#fff; border:none; border-radius:10px; padding:10px 18px; font-size:15px; font-weight:800; cursor:pointer; height:40px; }
+  .btn-save:disabled{ opacity:.5; cursor:default; }
+
+  /* log form */
+  .logForm{ background:var(--teal); border-radius:14px; padding:14px 18px; margin:0 0 20px; display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; }
+  .logForm .pt{ color:#cfe3e8; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:.8px; width:100%; margin-bottom:2px; }
+  .logForm label{ color:#d6e6ea; }
+  .logForm input, .logForm select{ border:none; border-radius:9px; padding:10px 12px; font-size:16px; color:var(--slate); background:#fff; }
+  .logForm select{ font-weight:700; min-width:150px; }
+  .logForm input.amt{ width:150px; font-weight:800; }
+  .logForm input.wo{ width:170px; }
+  .btn-add{ background:var(--gold); color:#fff; border:none; border-radius:10px; padding:11px 22px; font-size:16px; font-weight:800; cursor:pointer; height:42px; }
+  .signin-cta{ background:#fff; border:1px dashed var(--mid); border-radius:14px; padding:18px; text-align:center; color:var(--slate); margin:0 0 20px; }
+  .signin-cta button{ margin-top:8px; }
+
+  /* ===== Wins Wall (shared office + TV) ===== */
+  .board{ background:var(--paper); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:0 8px 26px rgba(31,78,95,.12); }
+  .board .bbar{ height:8px; background:linear-gradient(90deg,var(--teal),var(--mid),var(--gold)); }
+  .wallGrid{ display:flex; gap:26px; padding:22px 26px 24px; }
+  .wLeft{ width:340px; flex:0 0 340px; display:flex; flex-direction:column; align-items:center; }
+  .wTitle{ text-align:center; margin-bottom:6px; }
+  .wTitle .t{ color:var(--teal); font-weight:800; font-size:23px; }
+  .wTitle .m{ color:var(--mid); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:1.2px; }
+  .ring{ position:relative; width:250px; height:250px; border-radius:50%; margin:6px 0 2px; display:flex; align-items:center; justify-content:center; }
+  .ring::after{ content:""; position:absolute; width:188px; height:188px; border-radius:50%; background:var(--paper); }
+  .ring .inner{ position:relative; text-align:center; z-index:1; }
+  .ring .inner .p{ font-size:54px; font-weight:900; color:var(--teal); line-height:1; }
+  .ring .inner .s{ font-size:14px; color:var(--mid); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+  .amtline{ margin-top:16px; text-align:center; }
+  .amtline .big{ font-size:31px; font-weight:900; color:var(--teal); }
+  .amtline .sm{ font-size:15px; color:var(--slate); font-weight:700; margin-top:2px; }
+  .rewardchip{ display:inline-flex; align-items:center; gap:8px; margin-top:16px; background:var(--goldlt); border:1.5px solid var(--gold); color:#8a641f; font-weight:800; font-size:14px; padding:8px 15px; border-radius:999px; text-align:center; }
+  .goalmet{ margin-top:14px; background:var(--green); color:#fff; font-weight:900; font-size:15px; padding:9px 16px; border-radius:999px; text-align:center; letter-spacing:.3px; }
+
+  .wRight{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .liveHead{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .liveHead h3{ color:var(--teal); font-size:22px; font-weight:800; }
+  .liveDot{ width:11px; height:11px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(181,80,60,.6); animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(181,80,60,.5);} 70%{ box-shadow:0 0 0 12px rgba(181,80,60,0);} 100%{ box-shadow:0 0 0 0 rgba(181,80,60,0);} }
+  .winList{ display:flex; flex-direction:column; gap:11px; flex:1; }
+  .winCard{ background:#fff; border:1px solid var(--line); border-left:5px solid var(--green); border-radius:12px; padding:11px 15px; display:flex; align-items:center; gap:13px; box-shadow:0 2px 8px rgba(31,78,95,.06); }
+  .winCard.fresh{ border-left-color:var(--gold); background:var(--goldlt); }
+  .winCard .av{ width:44px; height:44px; border-radius:50%; background:var(--mid); color:#fff; font-weight:800; font-size:18px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .winCard .meta{ line-height:1.3; min-width:0; }
+  .winCard .meta .nm{ font-weight:800; color:var(--teal); font-size:17px; }
+  .winCard .meta .wo{ font-size:13px; color:var(--slate); opacity:.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .winCard .amt{ margin-left:auto; font-weight:900; color:var(--green); font-size:23px; white-space:nowrap; }
+  .winCard.fresh .amt{ color:var(--gold); }
+  .winCard .ed{ display:flex; gap:6px; margin-left:8px; flex:0 0 auto; }
+  .winCard .ed button{ border:1px solid var(--line); background:#fff; border-radius:7px; padding:5px 9px; font-size:12px; font-weight:700; color:var(--slate); cursor:pointer; }
+  .winCard .ed button.del:hover{ border-color:var(--red); color:var(--red); }
+  .emptyList{ text-align:center; color:var(--slate); opacity:.6; padding:40px 10px; font-size:16px; font-weight:600; }
+
+  .winSearch{ display:flex; align-items:center; gap:8px; margin:auto 0 10px; padding-top:12px; }
+  .winSearch .mag{ font-size:15px; color:var(--mid); }
+  .winSearch input{ flex:1; border:1.5px solid var(--line); border-radius:9px; padding:9px 12px; font-size:14px; color:var(--slate); background:#fff; }
+  .winSearch input::placeholder{ color:#9a948a; }
+  .winSearch .clr{ border:none; background:none; color:var(--mid); font-size:13px; font-weight:700; cursor:pointer; }
+  .winPager{ display:flex; align-items:center; justify-content:center; gap:16px; }
+  .winPager button{ width:34px; height:34px; border-radius:9px; border:1.5px solid var(--line); background:#fff; color:var(--teal); font-size:16px; font-weight:800; cursor:pointer; }
+  .winPager button:disabled{ opacity:.35; cursor:default; }
+  .winPager .count{ font-size:13px; color:var(--slate); font-weight:700; }
+
+  .footnote{ text-align:center; color:var(--slate); opacity:.6; font-size:12px; margin-top:16px; }
+
+  /* confetti + goal banner */
+  #fx{ position:fixed; inset:0; pointer-events:none; z-index:50; }
+  .goalBanner{ position:fixed; left:50%; top:26px; transform:translateX(-50%); background:var(--green); color:#fff; font-weight:900; font-size:20px; padding:14px 26px; border-radius:14px; box-shadow:0 8px 30px rgba(31,78,95,.3); z-index:60; text-align:center; }
+  .rwtoggle{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--slate); cursor:pointer; align-self:flex-end; padding-bottom:9px; }
+  .rwtoggle input{ width:17px; height:17px; accent-color:var(--teal); cursor:pointer; }
+
+  /* per-entry celebration toast — scales up by tier */
+  .celebToast{ position:fixed; left:50%; top:34%; transform:translate(-50%,-10px) scale(.9); opacity:0;
+    z-index:61; text-align:center; pointer-events:none; color:#fff; border-radius:18px; padding:16px 30px;
+    box-shadow:0 14px 44px rgba(14,42,51,.38); transition:opacity .25s ease, transform .28s cubic-bezier(.2,1.3,.4,1); white-space:nowrap; }
+  .celebToast.show{ opacity:1; transform:translate(-50%,0) scale(1); }
+  .celebToast .l1{ font-weight:900; letter-spacing:.3px; line-height:1.1; }
+  .celebToast .l2{ font-weight:900; opacity:.95; margin-top:3px; }
+  .celeb-small{  background:linear-gradient(135deg,var(--mid),var(--teal)); }
+  .celeb-small .l1{ font-size:22px; } .celeb-small .l2{ font-size:20px; }
+  .celeb-medium{ background:linear-gradient(135deg,var(--green),#2f7a4e); }
+  .celeb-medium .l1{ font-size:28px; } .celeb-medium .l2{ font-size:26px; }
+  .celeb-big{ background:linear-gradient(135deg,var(--gold),#a9741f); padding:20px 38px; }
+  .celeb-big .l1{ font-size:36px; } .celeb-big .l2{ font-size:34px; }
+  .celeb-grand{ background:linear-gradient(135deg,#C8923D,#4A8C5E,#2E7D8F); padding:26px 50px; border:3px solid #fff;
+    animation:grandPulse 1s ease-in-out infinite; }
+  .celeb-grand .l1{ font-size:46px; } .celeb-grand .l2{ font-size:44px; }
+  @keyframes grandPulse{ 0%,100%{ box-shadow:0 14px 44px rgba(14,42,51,.38); } 50%{ box-shadow:0 14px 64px rgba(200,146,61,.75); } }
+
+  /* ===== TV MODE ===== */
+  body.tv{ background:#0e2a33; }
+  body.tv .authbar, body.tv .goalPanel, body.tv .logForm, body.tv .signin-cta, body.tv .winSearch, body.tv .winPager, body.tv .winCard .ed, body.tv .footnote, body.tv .brandhead .bar{ display:none !important; }
+  body.tv .wrap{ max-width:none; padding:0; height:100vh; display:flex; align-items:center; justify-content:center; }
+  body.tv #tvScaler{ width:1280px; }
+  body.tv .brandhead h1{ color:#fff; font-size:40px; }
+  body.tv .brandhead .sub{ color:var(--gold); font-size:18px; }
+  body.tv .board{ box-shadow:none; }
+  body.tv .winCard .amt{ font-size:27px; }
+  body.tv .ring .inner .p{ font-size:62px; }
+
+  @media (max-width:720px){
+    .wallGrid{ flex-direction:column; align-items:center; }
+    .wLeft{ width:100%; flex:none; }
+    .goalPanel, .logForm{ flex-direction:column; align-items:stretch; }
+    .goalPanel .fld, .logForm .fld{ flex:none; width:100%; }
+    .logForm input, .logForm select, .logForm .amt, .logForm .wo,
+    .goalPanel input{ width:100%; }
+    .btn-save, .btn-add{ width:100%; }
+    .winCard .amt{ font-size:20px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <div id="tvScaler">
+    <div class="authbar" id="authbar"></div>
+    <div class="brandhead">
+      <div class="bar"></div>
+      <h1>Collections Goal</h1>
+      <div class="sub" id="locSub">Roaring Fork / Glenwood Springs</div>
+    </div>
+
+    <div id="goalPanel"></div>
+    <div id="formArea"></div>
+    <div class="board"><div class="bbar"></div><div class="wallGrid" id="wall"></div></div>
+    <div class="footnote" id="footnote"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Belmont Collections — standalone tool
+   Office page (default) + TV display (?tv=1)
+   Shares the Belmont Supabase project; falls back to this
+   browser's local storage when offline / not configured.
+   ============================================================ */
+
+/* ---- config ---- */
+const SUPABASE_URL  = "https://vhyfazcwhaiathwpmnez.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_fVDVzLeVUgac8jEp2m3qIw_l0rM11J3";
+
+const LOCATION = "roaring-fork";                 // only location for now; stored on every entry for the future split
+const LOCATION_LABEL = "Roaring Fork / Glenwood Springs";
+const NAMES = ["Aftin", "Cynthia", "Joel"];      // who can be credited; edit this list anytime
+const PAGE_SIZE = 4;
+const REFRESH_MS = 20000;
+const LS_KEY = "belmont_collections_v1";
+const LAST_NAME_KEY = "belmont_collections_lastname";
+
+/* ---- runtime state ---- */
+const IS_TV = new URLSearchParams(location.search).get("tv") === "1";
+const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+const sb = CLOUD ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+let userScope = CLOUD ? "viewer" : "owner";      // offline test = full control
+let userEmail = null;
+let cfg = { target: 0, reward: "", showReward: true };   // this month's goal + reward
+let entries = [];                                // active (non-void) entries for this month+location
+let page = 0;
+let query = "";
+let celebrated = false;                          // guard so confetti fires once per threshold cross
+
+/* ---- helpers ---- */
+function monthKey(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+const MONTH = monthKey();
+function monthLabel(){ return new Date(MONTH+"-01T00:00:00").toLocaleString(undefined,{month:"long", year:"numeric"}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function money(n){ n=Math.round(Number(n)||0); return "$"+n.toLocaleString(); }
+function parseAmount(s){ const n=Number(String(s).replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:0; }
+function total(){ return entries.reduce((a,e)=>a+(Number(e.amount)||0),0); }
+function pct(){ const t=cfg.target>0 ? total()/cfg.target*100 : 0; return Math.max(0, Math.min(100, t)); }
+function timeAgo(iso){
+  const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<90) return "just now";
+  if(s<3600) return Math.round(s/60)+"m ago";
+  if(s<86400) return Math.round(s/3600)+"h ago";
+  const d=Math.round(s/86400); return d===1?"yesterday":d+"d ago";
+}
+function uid(){ try{ if(crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return "id"+Date.now()+Math.random().toString(16).slice(2); }
+
+/* ============================================================
+   DATA LAYER — cloud (Supabase) or local (localStorage)
+   ============================================================ */
+function localLoad(){
+  let box={}; try{ box=JSON.parse(localStorage.getItem(LS_KEY)||"{}"); }catch(e){}
+  box.goals = box.goals || {};
+  box.entries = box.entries || [];
+  return box;
+}
+function localSave(box){ try{ localStorage.setItem(LS_KEY, JSON.stringify(box)); }catch(e){} }
+
+async function loadAll(){
+  if(CLOUD){
+    try{
+      const g = await sb.from("collections_goals").select("target,reward,show_reward").eq("month",MONTH).eq("location",LOCATION).maybeSingle();
+      cfg = (g.data) ? { target:Number(g.data.target)||0, reward:g.data.reward||"", showReward:g.data.show_reward!==false } : { target:0, reward:"", showReward:true };
+      const e = await sb.from("collections_entries").select("*")
+        .eq("month",MONTH).eq("location",LOCATION).eq("void",false)
+        .order("created_at",{ascending:false});
+      entries = e.data || [];
+    }catch(err){ console.warn("load failed", err); }
+  } else {
+    const box = localLoad();
+    const gk = MONTH+"|"+LOCATION;
+    cfg = box.goals[gk] ? { target:Number(box.goals[gk].target)||0, reward:box.goals[gk].reward||"", showReward:box.goals[gk].showReward!==false } : { target:0, reward:"", showReward:true };
+    entries = box.entries.filter(x=>x.month===MONTH && x.location===LOCATION && !x.void)
+                         .sort((a,b)=> new Date(b.created_at)-new Date(a.created_at));
+  }
+}
+
+async function saveGoalData(target, reward, showReward){
+  if(CLOUD){
+    await sb.from("collections_goals").upsert(
+      { month:MONTH, location:LOCATION, target, reward, show_reward:showReward, updated_at:new Date().toISOString() },
+      { onConflict:"month,location" }
+    );
+  } else {
+    const box=localLoad(); box.goals[MONTH+"|"+LOCATION]={target,reward,showReward}; localSave(box);
+  }
+}
+
+async function addEntryData(rec){
+  if(CLOUD){
+    await sb.from("collections_entries").insert(rec);
+  } else {
+    const box=localLoad(); box.entries.push(rec); localSave(box);
+  }
+}
+
+async function updateEntryData(id, patch){
+  if(CLOUD){
+    await sb.from("collections_entries").update(patch).eq("id",id);
+  } else {
+    const box=localLoad(); const row=box.entries.find(x=>x.id===id); if(row) Object.assign(row,patch); localSave(box);
+  }
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+async function addWin(){
+  const nameSel=document.getElementById("fName"), woEl=document.getElementById("fWO"), amtEl=document.getElementById("fAmt");
+  const person=nameSel.value, wo=woEl.value.trim(), amount=parseAmount(amtEl.value);
+  if(!person){ alert("Please pick who collected this."); return; }
+  if(amount<=0){ alert("Please enter a dollar amount."); amtEl.focus(); return; }
+  const rec={ id:uid(), created_at:new Date().toISOString(), month:MONTH, location:LOCATION,
+              person, work_order:wo, amount, void:false, created_by:userEmail||null };
+  try{ localStorage.setItem(LAST_NAME_KEY, person); }catch(e){}
+  await addEntryData(rec);
+  woEl.value=""; amtEl.value=""; page=0; query="";
+  await loadAll(); render();
+  celebrateEntry(amount, { sound:true });   // the person who logged it gets the full celebration + chime
+  syncSeen(false);                          // mark it seen so the refresh timer doesn't re-celebrate it
+}
+
+async function editWin(id){
+  const row=entries.find(x=>x.id===id); if(!row) return;
+  const newAmt=prompt("Amount collected ($):", row.amount);
+  if(newAmt===null) return;
+  const amount=parseAmount(newAmt); if(amount<=0){ alert("Amount must be greater than 0."); return; }
+  const newWO=prompt("Work-order number:", row.work_order||"");
+  if(newWO===null) return;
+  await updateEntryData(id,{ amount, work_order:newWO.trim() });
+  await loadAll(); render();
+}
+
+async function deleteWin(id){
+  const row=entries.find(x=>x.id===id); if(!row) return;
+  if(!confirm("Remove this entry?\n"+row.person+" · "+(row.work_order||"no WO#")+" · "+money(row.amount))) return;
+  await updateEntryData(id,{ void:true });   // soft delete keeps an audit trail
+  await loadAll(); render();
+}
+
+async function saveGoal(){
+  const t=parseAmount(document.getElementById("gTarget").value);
+  const show=document.getElementById("gShowReward").checked;
+  const r=document.getElementById("gReward").value.trim();
+  await saveGoalData(t, r, show);
+  await loadAll(); render();
+  flashSaved();
+}
+function toggleRewardField(){
+  const on=document.getElementById("gShowReward").checked;
+  document.getElementById("rewardField").style.display = on ? "" : "none";
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  document.getElementById("locSub").textContent = LOCATION_LABEL;
+  renderAuth();
+  renderGoalPanel();
+  renderForm();
+  renderWall();
+  maybeCelebrate();
+}
+
+function renderAuth(){
+  const bar=document.getElementById("authbar");
+  if(IS_TV){ bar.style.display="none"; return; }
+  if(!CLOUD){ bar.innerHTML='<span class="scope edit">Offline test mode</span>'; return; }
+  if(userScope==="viewer"){
+    bar.innerHTML='<span class="scope view">Viewing</span> <button class="btn-mini" onclick="signIn()">Sign in to log wins</button>';
+  } else {
+    const label = userScope==="owner" ? "Owner" : "Office — signed in";
+    bar.innerHTML='<span class="who">'+esc(userEmail||"")+'</span> <span class="scope edit">'+label+'</span> <button class="btn-mini" onclick="signOut()">Sign out</button>';
+  }
+}
+
+function renderGoalPanel(){
+  const el=document.getElementById("goalPanel");
+  if(IS_TV || userScope!=="owner"){ el.className=""; el.style.display="none"; el.innerHTML=""; return; }
+  el.className="goalPanel"; el.style.display="";
+  const show = cfg.showReward!==false;
+  el.innerHTML =
+    '<div class="pt">Set this month — '+esc(monthLabel())+' (owner only)</div>'
+    +'<div class="fld"><label>Monthly goal ($)</label><input id="gTarget" inputmode="numeric" placeholder="50000" value="'+(cfg.target||"")+'"></div>'
+    +'<label class="rwtoggle"><input type="checkbox" id="gShowReward"'+(show?" checked":"")+' onchange="toggleRewardField()"> Offer a reward when the goal is hit</label>'
+    +'<div class="fld grow" id="rewardField"'+(show?"":' style="display:none"')+'><label>Reward</label><input id="gReward" placeholder="Spa Day for the Office Managers" value="'+esc(cfg.reward||"")+'"></div>'
+    +'<button class="btn-save" onclick="saveGoal()">Save</button>';
+}
+
+function renderForm(){
+  const el=document.getElementById("formArea");
+  if(IS_TV){ el.style.display="none"; el.innerHTML=""; return; }
+  el.style.display="";
+  if(CLOUD && userScope==="viewer"){
+    el.innerHTML='<div class="signin-cta">Sign in to log a collection win.<br><button class="btn-mini" onclick="signIn()">Sign in</button></div>';
+    return;
+  }
+  let last=""; try{ last=localStorage.getItem(LAST_NAME_KEY)||""; }catch(e){}
+  let opts='<option value="">Who collected this?</option>';
+  NAMES.forEach(n=>{ opts+='<option value="'+esc(n)+'"'+(n===last?" selected":"")+'>'+esc(n)+'</option>'; });
+  el.innerHTML =
+    '<div class="logForm">'
+    +'<div class="pt">Log a collection win</div>'
+    +'<div class="fld"><label>Who</label><select id="fName">'+opts+'</select></div>'
+    +'<div class="fld"><label>Work order #</label><input class="wo" id="fWO" placeholder="e.g. 4821"></div>'
+    +'<div class="fld"><label>Amount collected</label><input class="amt" id="fAmt" inputmode="decimal" placeholder="$0"></div>'
+    +'<button class="btn-add" onclick="addWin()">+ Add win</button>'
+    +'</div>';
+  const amt=document.getElementById("fAmt");
+  if(amt) amt.addEventListener("keydown", e=>{ if(e.key==="Enter") addWin(); });
+}
+
+function filtered(){
+  const q=query.trim().toLowerCase();
+  if(!q) return entries;
+  return entries.filter(e=> (e.person||"").toLowerCase().includes(q) || String(e.work_order||"").toLowerCase().includes(q) );
+}
+
+function renderWall(){
+  const el=document.getElementById("wall");
+  const t=total(), p=pct(), met = cfg.target>0 && t>=cfg.target;
+  const ringColor = met ? "var(--gold)" : "var(--green)";
+
+  // left column: ring + numbers + reward
+  let left='<div class="wLeft">'
+    +'<div class="wTitle"><div class="t">'+(met?"Goal Reached! 🎉":"Collections Goal")+'</div><div class="m">'+esc(monthLabel())+'</div></div>'
+    +'<div class="ring" style="background:conic-gradient('+ringColor+' 0 '+p.toFixed(1)+'%, #E6E0D2 '+p.toFixed(1)+'% 100%)">'
+      +'<div class="inner"><div class="p">'+Math.round(p)+'%</div><div class="s">'+(met?"complete":"to goal")+'</div></div></div>'
+    +'<div class="amtline"><div class="big">'+money(t)+'</div><div class="sm">'
+      +(cfg.target>0 ? "of "+money(cfg.target)+(met?"":" · "+money(cfg.target-t)+" to go") : "no goal set yet")
+    +'</div></div>';
+  const showRw = cfg.showReward!==false && !!cfg.reward;
+  if(showRw) left += '<div class="rewardchip"><span>🎁</span><span>'+esc(cfg.reward)+'</span></div>';
+  if(met) left += '<div class="goalmet">🏆 GOAL MET'+(showRw?" — "+esc(cfg.reward):"")+'</div>';
+  left+='</div>';
+
+  // right column: live wins
+  const list=filtered();
+  const pages=Math.max(1, Math.ceil(list.length/PAGE_SIZE));
+  if(page>=pages) page=pages-1; if(page<0) page=0;
+  const slice=list.slice(page*PAGE_SIZE, page*PAGE_SIZE+PAGE_SIZE);
+  const canEdit = !IS_TV && (!CLOUD || userScope!=="viewer");
+
+  let cards="";
+  if(!list.length){
+    cards='<div class="emptyList">'+(query?"No matching wins.":"No wins logged yet this month.<br>Be the first! 💪")+'</div>';
+  } else {
+    slice.forEach((e,i)=>{
+      const fresh = page===0 && i===0 && !query;
+      cards+='<div class="winCard'+(fresh?" fresh":"")+'">'
+        +'<div class="av">'+esc((e.person||"?").charAt(0).toUpperCase())+'</div>'
+        +'<div class="meta"><div class="nm">'+esc(e.person||"—")+'</div>'
+          +'<div class="wo">'+(e.work_order?"Work Order #"+esc(e.work_order):"No work order #")+' · '+timeAgo(e.created_at)+'</div></div>'
+        +'<div class="amt">+'+money(e.amount)+'</div>'
+        +(canEdit?'<div class="ed"><button onclick="editWin(\''+e.id+'\')">Edit</button><button class="del" onclick="deleteWin(\''+e.id+'\')">Delete</button></div>':'')
+        +'</div>';
+    });
+  }
+
+  let right='<div class="wRight">'
+    +'<div class="liveHead"><span class="liveDot"></span><h3>Live Wins</h3></div>'
+    +'<div class="winList">'+cards+'</div>';
+  if(!IS_TV){
+    const from=list.length?page*PAGE_SIZE+1:0, to=Math.min(list.length, page*PAGE_SIZE+PAGE_SIZE);
+    right+='<div class="winSearch"><span class="mag">🔍</span>'
+      +'<input id="searchBox" placeholder="Search a name or work-order number…" value="'+esc(query)+'">'
+      +(query?'<button class="clr" onclick="clearSearch()">clear</button>':'')+'</div>'
+      +'<div class="winPager"><button onclick="pagePrev()"'+(page<=0?" disabled":"")+'>&lsaquo;</button>'
+      +'<span class="count">'+(list.length?("Showing "+from+"&ndash;"+to+" of "+list.length+(query?" matches":" this month")):"—")+'</span>'
+      +'<button onclick="pageNext()"'+(page>=pages-1?" disabled":"")+'>&rsaquo;</button></div>';
+  }
+  right+='</div>';
+
+  el.innerHTML=left+right;
+
+  const sbx=document.getElementById("searchBox");
+  if(sbx){ sbx.addEventListener("input", e=>{ query=e.target.value; page=0; renderWall(); });
+           if(query){ sbx.focus(); sbx.setSelectionRange(query.length,query.length); } }
+}
+
+function pagePrev(){ if(page>0){ page--; renderWall(); } }
+function pageNext(){ page++; renderWall(); }
+function clearSearch(){ query=""; page=0; renderWall(); }
+
+/* ============================================================
+   CELEBRATION
+   ============================================================ */
+function maybeCelebrate(){
+  const met = cfg.target>0 && total()>=cfg.target;
+  if(met && !celebrated){ celebrated=true; confettiBurst(); showGoalBanner(); }
+  if(!met) celebrated=false;
+}
+function showGoalBanner(){
+  const b=document.createElement("div"); b.className="goalBanner";
+  b.innerHTML="🎉 GOAL REACHED!"+((cfg.showReward!==false && cfg.reward)?"<br>"+esc(cfg.reward):"");
+  document.body.appendChild(b);
+  setTimeout(()=>{ b.style.transition="opacity .8s"; b.style.opacity="0"; setTimeout(()=>b.remove(),900); }, 6000);
+}
+let fxCv, fxCtx, fxParts=[], fxRAF=null;
+function confettiShoot(o){
+  fxCv=document.getElementById("fx"); if(!fxCv) return;
+  fxCv.width=innerWidth; fxCv.height=innerHeight; fxCtx=fxCv.getContext("2d");
+  const colors=o.colors||["#C8923D","#4A8C5E","#2E7D8F","#1F4E5F","#D9A441"];
+  (o.origins||[[0.5,0.4]]).forEach(org=>{
+    for(let i=0;i<o.n;i++){
+      fxParts.push({ x:innerWidth*org[0]+(Math.random()-.5)*120, y:innerHeight*org[1],
+        vx:(Math.random()-.5)*(o.spread||10), vy:Math.random()*-(o.power||13)-4, g:0.30+Math.random()*0.2,
+        s:(o.size||6)+Math.random()*6, c:colors[Math.floor(Math.random()*colors.length)], rot:Math.random()*6, vr:(Math.random()-.5)*0.4, life:0 });
+    }
+  });
+  if(!fxRAF) fxTick();
+}
+// escalating confetti by celebration tier
+function confettiLevel(tier){
+  if(tier==="small")       confettiShoot({ n:24,  origins:[[0.5,0.42]], spread:8,  power:10, size:5 });
+  else if(tier==="medium") confettiShoot({ n:70,  origins:[[0.5,0.40]], spread:11, power:13, size:6 });
+  else if(tier==="big"){   confettiShoot({ n:80,  origins:[[0.25,0.5],[0.75,0.5]], spread:12, power:14, size:7 });
+                           setTimeout(()=>confettiShoot({ n:50, origins:[[0.5,0.35]], spread:12, power:14, size:7 }),220); }
+  else {                 // grand
+    confettiShoot({ n:120, origins:[[0.2,0.55],[0.8,0.55]], spread:13, power:15, size:8 });
+    setTimeout(()=>confettiShoot({ n:110, origins:[[0.5,0.3]], spread:14, power:16, size:9 }),240);
+    setTimeout(()=>confettiShoot({ n:110, origins:[[0.33,0.5],[0.67,0.5]], spread:13, power:16, size:9 }),540);
+  }
+}
+function confettiBurst(){ confettiLevel("grand"); }   // used by the goal-reached finale
+function fxTick(){
+  fxCtx.clearRect(0,0,fxCv.width,fxCv.height);
+  fxParts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life++;
+    fxCtx.save(); fxCtx.translate(p.x,p.y); fxCtx.rotate(p.rot); fxCtx.fillStyle=p.c;
+    fxCtx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); fxCtx.restore(); });
+  fxParts=fxParts.filter(p=> p.y<fxCv.height+40 && p.life<260);
+  if(fxParts.length){ fxRAF=requestAnimationFrame(fxTick); } else { fxCtx.clearRect(0,0,fxCv.width,fxCv.height); fxRAF=null; }
+}
+
+function flashSaved(){
+  const b=document.createElement("div"); b.className="goalBanner"; b.style.background="var(--teal)";
+  b.textContent="Saved ✓"; document.body.appendChild(b);
+  setTimeout(()=>{ b.style.transition="opacity .5s"; b.style.opacity="0"; setTimeout(()=>b.remove(),600); }, 1400);
+}
+
+/* ---- per-entry tiered celebration ---- */
+function tierFor(a){ a=Number(a)||0; if(a>=20000) return "grand"; if(a>=8000) return "big"; if(a>=1000) return "medium"; return "small"; }
+const TIER_MSG = {
+  small:  { txt:"Nice win!",            emo:"🎉" },
+  medium: { txt:"Great collection!",    emo:"💪" },
+  big:    { txt:"BIG WIN!",             emo:"🔥" },
+  grand:  { txt:"HUGE COLLECTION!",     emo:"💥" }
+};
+function celebrateEntry(amount, opts){
+  opts=opts||{};
+  const tier=tierFor(amount), m=TIER_MSG[tier];
+  confettiLevel(tier);
+  celebToast(m.emo+" "+m.txt, "+"+money(amount), tier);
+  if(opts.sound!==false && !IS_TV) playChime(tier);
+}
+function celebToast(line1, line2, tier){
+  document.querySelectorAll(".celebToast").forEach(n=>n.remove());
+  const b=document.createElement("div"); b.className="celebToast celeb-"+tier;
+  b.innerHTML='<div class="l1">'+esc(line1)+'</div><div class="l2">'+esc(line2)+'</div>';
+  document.body.appendChild(b);
+  requestAnimationFrame(()=>b.classList.add("show"));
+  const hold={small:1500, medium:1900, big:2500, grand:3400}[tier];
+  setTimeout(()=>{ b.classList.remove("show"); setTimeout(()=>b.remove(),450); }, hold);
+}
+let actx=null;
+function playChime(tier){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const notes={ small:[660], medium:[523,659], big:[523,659,784], grand:[523,659,784,1047,1319] }[tier];
+    const step=0.13;
+    notes.forEach((f,i)=>{
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type="triangle"; o.frequency.value=f; o.connect(g); g.connect(actx.destination);
+      const t=actx.currentTime+i*step;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.22,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+step);
+      o.start(t); o.stop(t+step+0.03);
+    });
+  }catch(e){}
+}
+
+/* ---- notice wins arriving from other devices / the TV ---- */
+let seenIds = null;
+function syncSeen(allowCelebrate){
+  const ids = entries.map(e=>e.id);
+  if(seenIds===null){ seenIds=new Set(ids); return; }         // first load: don't celebrate the backlog
+  const fresh = entries.filter(e=>!seenIds.has(e.id));
+  ids.forEach(id=>seenIds.add(id));
+  if(allowCelebrate && fresh.length){
+    const top = Math.max.apply(null, fresh.map(e=>Number(e.amount)||0));
+    celebrateEntry(top, { sound:false });                     // arrivals from elsewhere: visuals only
+  }
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+async function refreshScope(){
+  if(!CLOUD){ userScope="owner"; return; }
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user){ userScope="viewer"; userEmail=null; return; }
+    userEmail = user.email;
+    const { data, error } = await sb.from("editors").select("scope").eq("id", user.id).single();
+    userScope = (!error && data && data.scope) ? data.scope : "viewer";
+  }catch(e){ userScope="viewer"; }
+}
+async function signIn(){
+  const email=prompt("Enter your work email:"); if(!email) return;
+  const password=prompt("Enter your password:"); if(!password) return;
+  const { error } = await sb.auth.signInWithPassword({ email:email.trim(), password });
+  if(error){ alert("Sign-in error: "+error.message); return; }
+  await refreshScope(); await loadAll(); render();
+}
+async function signOut(){ await sb.auth.signOut(); userScope="viewer"; userEmail=null; render(); }
+
+/* ============================================================
+   TV FIT + INIT
+   ============================================================ */
+function fitTV(){
+  if(!IS_TV) return;
+  const sc=document.getElementById("tvScaler");
+  sc.style.transform="none";
+  const avail=innerHeight-20, h=sc.offsetHeight, w=sc.offsetWidth;
+  const k=Math.min((innerWidth-20)/w, avail/h);
+  sc.style.transformOrigin="center center";
+  sc.style.transform="scale("+Math.min(k,1.6)+")";
+}
+
+async function init(){
+  if(IS_TV){ document.body.classList.add("tv"); document.getElementById("footnote").style.display="none"; }
+  await refreshScope();
+  await loadAll();
+  render();
+  syncSeen(false);                           // seed the "already seen" set without celebrating the backlog
+  if(IS_TV){ fitTV(); addEventListener("resize", fitTV); setTimeout(fitTV,120); }
+  // keep it live — and celebrate wins that arrive from other devices
+  setInterval(async()=>{ await loadAll(); render(); syncSeen(true); if(IS_TV) fitTV(); }, REFRESH_MS);
+  if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
+    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); await loadAll(); render(); });
+  }
+}
+window.addEventListener("DOMContentLoaded", init);
+window.addEventListener("resize", ()=>{ if(IS_TV) fitTV(); else { const c=document.getElementById("fx"); if(c){ c.width=innerWidth; c.height=innerHeight; } } });
+</script>
+</body>
+</html>
