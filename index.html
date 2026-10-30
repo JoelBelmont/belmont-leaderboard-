@@ -896,7 +896,7 @@ function syncEditBtn(){
   if(lb) lb.style.display = (userScope==="viewer"||eos) ? "none" : "";          // layout is leaderboard-only
   const rb=document.getElementById('reviewBtn');
   if(rb){ rb.style.display = (userScope==="viewer") ? "none" : "";               // owner + managers
-    rb.innerHTML = eos ? '&#127916; Weekly Review' : '&#127916; Month in Review'; }
+    rb.innerHTML = eos ? '&#127916; Monthly Review' : '&#127916; Month in Review'; }
   const cb=document.getElementById('cashBtn');
   if(cb) cb.style.display = (userScope==="owner" && !eos) ? "" : "none";        // Points toggle is leaderboard-only
   const eb=document.getElementById('eosBtn');
