@@ -2086,21 +2086,21 @@ const EOS_DONE=[
   t=>`${t} is complete — that's a Goal put to bed. Outstanding.`,
   t=>`${t} — crossed the finish line. That's exactly what Goals are for.` ];
 const EOS_ON=[
-  t=>`${t} is on track — steady weekly progress is how big goals actually get done. Keep it rolling.`,
+  t=>`${t} is on track — steady progress is how big goals actually get done. Keep it rolling.`,
   t=>`${t} — right on pace. Momentum like this is what carries a Goal home.`,
   t=>`${t} is tracking nicely; stay on it and the finish takes care of itself.` ];
 const EOS_OFF=[
-  t=>`${t} slipped off track this week — let's name the one blocker and clear it together.`,
+  t=>`${t} slipped off track — let's name the one blocker and clear it together.`,
   t=>`${t} needs some attention; what's the single next step that gets it moving again?`,
-  t=>`Let's get ${t} back on pace — one focused push this week makes the difference.` ];
+  t=>`Let's get ${t} back on pace — one focused push makes the difference.` ];
 const EOS_NONE=[
   t=>`${t} hasn't been marked yet — a quick status check gets it back on the radar.`,
   t=>`Let's log where ${t} stands so we can keep it moving.`,
   t=>`${t} is waiting on an update — a few minutes now keeps it from drifting.` ];
-const EOS_NOWIN=[ `Fresh week — let's get a Goal or two trending green and build from there.`,
-                  `Open field this week; let's put some progress on the board together.` ];
+const EOS_NOWIN=[ `Fresh start — let's get a Goal or two trending green and build from there.`,
+                  `Open field here; let's put some progress on the board together.` ];
 const EOS_ALLGOOD=[ `Every Goal on track — nothing to fix. Phenomenal pace.`,
-                    `Clean sweep on your Goals this week. Keep it rolling.` ];
+                    `Clean sweep on your Goals. Keep it rolling.` ];
 const EOS_VALUES={
   responsibility:{name:'Responsibility', lines:[
     `owning your Goals and driving them to done is Responsibility you can set your watch by.`,
@@ -2158,7 +2158,7 @@ function renderEosReview(){
     chips+=`<div class="rv-metric"><span class="eosrv-badge ${cls}">${c==='done'?'DONE':c==='off'?'OFF':'ON'}</span><span>${esc(r.title||'(untitled Goal)')}</span></div>`; });
   const el=document.getElementById('reviewView');
   el.innerHTML = `<button id="rvExit" onclick="exitReview()">&#10005; Exit review</button>
-    <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(q.label||'')} &middot; Week ${nowWeek}</div>
+    <div class="rv-prog">Person ${reviewIdx+1} of ${reviewOrder.length} &middot; ${esc(LOCATIONS[viewLoc]||'')} &middot; ${esc(q.label||'')}</div>
     <div class="rv-card rv-card-eos">
       <div class="rv-name">${esc(p.name)}</div>
       <div class="rv-role">${esc(p.role)}</div>
