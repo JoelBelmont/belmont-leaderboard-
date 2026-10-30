@@ -2084,33 +2084,54 @@ function maybeCelebrate(){
 const EOS_DONE=[
   t=>`${t} — done and dusted. Finishing a Goal is a real milestone; take the win.`,
   t=>`${t} is complete — that's a Goal put to bed. Outstanding.`,
-  t=>`${t} — crossed the finish line. That's exactly what Goals are for.` ];
+  t=>`${t} — crossed the finish line. That's exactly what Goals are for.`,
+  t=>`${t} is in the books — real, finished progress. Well done.`,
+  t=>`${t} — nailed it. That's one fully delivered.`,
+  t=>`${t} complete — that's the kind of follow-through that moves the business.`,
+  t=>`${t} — closed out. Credit where it's due; that's a job finished.` ];
 const EOS_ON=[
   t=>`${t} is on track — steady progress is how big goals actually get done. Keep it rolling.`,
   t=>`${t} — right on pace. Momentum like this is what carries a Goal home.`,
-  t=>`${t} is tracking nicely; stay on it and the finish takes care of itself.` ];
+  t=>`${t} is tracking nicely; stay on it and the finish takes care of itself.`,
+  t=>`${t} is moving in the right direction — keep the pressure steady.`,
+  t=>`${t} — solid pace. This is exactly how it should look partway through.`,
+  t=>`${t} is trending green; keep doing what's working.`,
+  t=>`${t} is in good shape — nice consistent effort here.` ];
 const EOS_OFF=[
-  t=>`${t} slipped off track — let's name the one blocker and clear it together.`,
-  t=>`${t} needs some attention; what's the single next step that gets it moving again?`,
-  t=>`Let's get ${t} back on pace — one focused push makes the difference.` ];
+  t=>`${t} needs some attention — what's the single next step that gets it moving again?`,
+  t=>`${t} slipped off track — what's one thing you could focus on to improve this?`,
+  t=>`Let's get ${t} back on pace — what would make the biggest difference here?`,
+  t=>`${t} stalled a bit — where do you think it got stuck?`,
+  t=>`${t} isn't where you want it yet — what support would help you move it forward?`,
+  t=>`${t} needs a nudge — what's one small win you could aim for next?`,
+  t=>`Let's refocus on ${t} — what's the first move that builds momentum again?`,
+  t=>`${t} could use a push — what's one change that would get it trending up?`,
+  t=>`Let's dig into ${t} — what would it take to get it back on track?` ];
 const EOS_NONE=[
-  t=>`${t} hasn't been marked yet — a quick status check gets it back on the radar.`,
+  t=>`${t} hasn't been marked yet — what's the current status?`,
   t=>`Let's log where ${t} stands so we can keep it moving.`,
-  t=>`${t} is waiting on an update — a few minutes now keeps it from drifting.` ];
+  t=>`${t} is waiting on an update — a quick status check keeps it on the radar.`,
+  t=>`Where does ${t} stand right now? Let's get it back on the board.`,
+  t=>`${t} needs a status — what's the latest on it?`,
+  t=>`Let's catch ${t} up — where did it land?` ];
 const EOS_NOWIN=[ `Fresh start — let's get a Goal or two trending green and build from there.`,
-                  `Open field here; let's put some progress on the board together.` ];
+                  `Open field here; let's put some progress on the board together.`,
+                  `Clean slate — pick one Goal to move first and the rest tend to follow.`,
+                  `Nothing locked in yet — where's the easiest place to start building momentum?` ];
 const EOS_ALLGOOD=[ `Every Goal on track — nothing to fix. Phenomenal pace.`,
-                    `Clean sweep on your Goals. Keep it rolling.` ];
+                    `Clean sweep on your Goals. Keep it rolling.`,
+                    `Across the board, you're on pace — this is what great execution looks like.`,
+                    `Full green — outstanding. Keep the rhythm going.` ];
 const EOS_VALUES={
   responsibility:{name:'Responsibility', lines:[
     `owning your Goals and driving them to done is Responsibility you can set your watch by.`,
     `everything you commit to, you follow through on. That's Responsibility.` ]},
   initiative:{name:'Initiative', lines:[
-    `you don't wait to be asked — you move your Goals forward every week. That's Initiative.`,
+    `you don't wait to be asked — you keep your Goals moving forward. That's Initiative.`,
     `spotting the next step and taking it is Initiative, pure and simple.` ]},
   stewardship:{name:'Stewardship', lines:[
     `steady, disciplined progress on the priorities that matter is Stewardship in action.`,
-    `you use your weeks wisely and keep the important things moving. That's Stewardship.` ]} };
+    `you use your time wisely and keep the important things moving. That's Stewardship.` ]} };
 function eosAutoDraft(p){
   const rocks=personRocks(p.id), wins=[], improve=[], used={};
   const pickIdx=(len,h,key)=>{ const u=used[key]||(used[key]=new Set()); let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
