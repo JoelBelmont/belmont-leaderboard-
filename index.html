@@ -1356,7 +1356,7 @@ function enterTV(){
   document.body.classList.add('tv-mode');
   try{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }catch(e){}
   render();
-  if(!tvTimer && CLOUD){ tvTimer=setInterval(async()=>{ try{ await loadState(); viewMonth=state.current; resolveView(); buildMonthNav(); render(); }catch(e){} }, 120000); }
+  if(!tvTimer && CLOUD){ tvTimer=setInterval(async()=>{ if(editing) return; try{ await loadState(); viewMonth=state.current; resolveView(); buildMonthNav(); render(); }catch(e){} }, 120000); }
 }
 function exitTV(){
   document.body.classList.remove('tv-mode');
@@ -2125,13 +2125,47 @@ const EOS_ALLGOOD=[ `Every Goal on track — nothing to fix. Phenomenal pace.`,
 const EOS_VALUES={
   responsibility:{name:'Responsibility', lines:[
     `owning your Goals and driving them to done is Responsibility you can set your watch by.`,
-    `everything you commit to, you follow through on. That's Responsibility.` ]},
+    `everything you commit to, you follow through on. That's Responsibility.`,
+    `you take your Goals personally and see them through — that's real Responsibility.`,
+    `no one has to chase you on your commitments; you own them start to finish.`,
+    `when you say a Goal will get done, it gets done. That's Responsibility in one line.`,
+    `you carry your piece without being asked twice — dependable Responsibility.`,
+    `the buck stops with you on your Goals, and it shows. That's Responsibility.`,
+    `steady ownership of what's yours to do — Responsibility people can count on.` ]},
   initiative:{name:'Initiative', lines:[
     `you don't wait to be asked — you keep your Goals moving forward. That's Initiative.`,
-    `spotting the next step and taking it is Initiative, pure and simple.` ]},
+    `spotting the next step and taking it is Initiative, pure and simple.`,
+    `you see what needs doing and start before anyone prompts you — that's Initiative.`,
+    `you don't wait for perfect conditions; you move. That's Initiative.`,
+    `finding the opening and going after it — that's Initiative at work.`,
+    `you turn "someone should" into "I will." That's Initiative.`,
+    `you keep momentum going without needing a push — real Initiative.`,
+    `you take the first step so the rest can follow. That's Initiative.` ]},
   stewardship:{name:'Stewardship', lines:[
     `steady, disciplined progress on the priorities that matter is Stewardship in action.`,
-    `you use your time wisely and keep the important things moving. That's Stewardship.` ]} };
+    `you use your time wisely and keep the important things moving. That's Stewardship.`,
+    `you protect the priorities and don't let them drift — that's Stewardship.`,
+    `careful, consistent effort on what matters most — that's Stewardship.`,
+    `you treat your time and the company's like they count, because they do. Stewardship.`,
+    `nothing important slips through on your watch. That's Stewardship.`,
+    `you keep the big rocks moving and don't let the small stuff take over — Stewardship.`,
+    `disciplined focus on what actually moves the needle — that's Stewardship.` ]},
+  caring:{name:'Caring', lines:[
+    `the care you put into getting it right for the customer shows real Caring.`,
+    `you look out for the team and the people your work touches — that's Caring.`,
+    `you treat every job like it matters to a real person, because it does. That's Caring.`,
+    `the extra attention you give so others aren't left hanging is Caring.`,
+    `you carry your weight so the team isn't stretched thin — that's Caring.`,
+    `doing right by the customer and the crew is Caring you can feel.`,
+    `you think about who's affected by your work, and it shows. That's Caring.` ]},
+  integrity:{name:'Integrity', lines:[
+    `doing the work properly instead of just quickly is Integrity.`,
+    `you do it right even when no one's watching — that's Integrity.`,
+    `honest status, no shortcuts, work you'd stand behind — that's Integrity.`,
+    `you'd rather do it right than do it fast, and it shows. That's Integrity.`,
+    `what you report is what's real; that straight-shooting is Integrity.`,
+    `you hold the line on quality even under pressure — that's Integrity.`,
+    `no corners cut, nothing papered over — that's Integrity.` ]} };
 function eosAutoDraft(p){
   const rocks=personRocks(p.id), wins=[], improve=[], used={};
   const pickIdx=(len,h,key)=>{ const u=used[key]||(used[key]=new Set()); let idx=h%len,g=0; while(u.has(idx)&&g<len){ idx=(idx+1)%len; g++; } u.add(idx); return idx; };
@@ -2144,8 +2178,7 @@ function eosAutoDraft(p){
   });
   let value=null;
   if(wins.length){
-    const done=rocks.filter(r=>rockCurrent(r)==='done').length, pct=personPct(p.id);
-    const pool = done>0 ? ['initiative','responsibility'] : (pct>=80?['responsibility','stewardship']:['responsibility','initiative','stewardship']);
+    const pool = ['responsibility','initiative','stewardship','caring','integrity'];   // all five Belmont core values, picked evenly per person
     const vk=pool[hashStr((p.id||'')+"|val|"+eosViewQuarter)%pool.length], def=EOS_VALUES[vk];
     value={ name:def.name, line:def.lines[hashStr((p.id||'')+"|vl|"+eosViewQuarter)%def.lines.length] };
   }
@@ -2622,7 +2655,8 @@ function resetWidths(){
     if(qs.get('slideshow')==='1'){ if(state.eosMode){ enterSlideshow(); } else { enterTV(); } }   // one-click TV link → full rotating slideshow (falls back to the static board if EOS is off)
   }
   if(CLOUD && sb.auth && sb.auth.onAuthStateChange){
-    sb.auth.onAuthStateChange(async()=>{ await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; eosViewQuarter=state.eosCurrent||thisQuarterKey(); ensureQuarter(eosViewQuarter); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
+    sb.auth.onAuthStateChange(async()=>{ if(editing) return;   // don't reload/close an open editor on a background token refresh — wait until the user saves/exits
+      await refreshScope(); resolveView(); buildLocToggle(); updateAuthBar(); await loadState(); viewMonth=state.current; eosViewQuarter=state.eosCurrent||thisQuarterKey(); ensureQuarter(eosViewQuarter); if(pendingIdSave && userScope!=="viewer"){ try{ await persist(); }catch(e){} pendingIdSave=false; } buildMonthNav(); render(); });
   }
 })();
 </script>
